@@ -1,0 +1,48 @@
+/*========== SCROLL BAR ==========*/
+::-webkit-scrollbar {
+    width: 0.4rem;
+    background-color: rgba(67, 97, 238, 0.15);
+    border-radius: 5rem;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgb(128 93 202 / 15%);
+    border-radius: 0.5rem;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 171, 85, 0.15);
+}
+
+::-webkit-scrollbar-track {
+    background-color: rgba(67, 97, 238, 0.15);
+    border-radius: 5rem;
+}
+
+.no-select {
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, hiện đại hơn */
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Ẩn nút tăng giảm trên trình duyệt Firefox */
+input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+.mantine-1w78hh7 {
+    z-index: 0 !important;
+}
+
+.text-nowrap {
+    white-space: nowrap; /* Không xuống dòng */
+    overflow: hidden; /* Ẩn phần nội dung tràn ra */
+    text-overflow: ellipsis; /* Thêm dấu "..." vào cuối */
+}
