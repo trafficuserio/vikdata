@@ -1,11 +1,13 @@
+// app/components/domain/component-view-domain.tsx
+
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Fragment } from 'react';
 import Link from 'next/link';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconEdit from '@/components/icon/icon-edit';
-import { sortBy } from 'lodash';
+import { sortBy as lodashSortBy } from 'lodash';
 import Select, { SingleValue } from 'react-select';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
 
@@ -52,81 +54,41 @@ const initialData: DomainData[] = [
     },
     {
         id: 2,
-        domain: 'example.org',
-        siteType: 'E-commerce',
+        domain: 'example.net',
+        siteType: 'News',
         siteGroup: 'Nhóm B',
         status: 'Inactive',
-        traffic: 500,
+        traffic: 2000,
         display: 'Không',
-        searchTraffic: 200,
+        searchTraffic: 1000,
         checkIndex: false,
-        searchSEO: 'Trung bình',
-        totalPosts: 100,
-        postsPosted: 80,
-        draft: 20,
-        siteIndexDate: '2023-02-15',
+        searchSEO: 'Tốt',
+        totalPosts: 300,
+        postsPosted: 250,
+        draft: 50,
+        siteIndexDate: '2023-01-01',
         keywordFile: 'keywords.xlsx',
     },
     {
         id: 3,
-        domain: 'example.net',
-        siteType: 'Portfolio',
+        domain: 'example.org',
+        siteType: 'E-commerce',
         siteGroup: 'Nhóm C',
         status: 'Active',
-        traffic: 800,
+        traffic: 3000,
         display: 'Có',
-        searchTraffic: 400,
+        searchTraffic: 1500,
         checkIndex: true,
         searchSEO: 'Tốt',
-        totalPosts: 150,
-        postsPosted: 120,
-        draft: 30,
-        siteIndexDate: '2023-03-10',
+        totalPosts: 400,
+        postsPosted: 350,
+        draft: 50,
+        siteIndexDate: '2023-01-01',
         keywordFile: 'keywords.xlsx',
     },
-    {
-        id: 4,
-        domain: 'example.co',
-        siteType: 'Forum',
-        siteGroup: 'Nhóm D',
-        status: 'Active',
-        traffic: 1200,
-        display: 'Có',
-        searchTraffic: 600,
-        checkIndex: true,
-        searchSEO: 'Tốt',
-        totalPosts: 300,
-        postsPosted: 200,
-        draft: 100,
-        siteIndexDate: '2023-04-05',
-        keywordFile: 'keywords.xlsx',
-    },
-    {
-        id: 5,
-        domain: 'example.info',
-        siteType: 'Blog',
-        siteGroup: 'Nhóm E',
-        status: 'Inactive',
-        traffic: 300,
-        display: 'Không',
-        searchTraffic: 100,
-        checkIndex: false,
-        searchSEO: 'Trung bình',
-        totalPosts: 50,
-        postsPosted: 40,
-        draft: 10,
-        siteIndexDate: '2023-05-20',
-        keywordFile: 'keywords.xlsx',
-    },
-    // Thêm các mục khác nếu cần
 ];
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
-
-const pageSizeOptions: OptionType[] = PAGE_SIZES.map((size) => ({
-    value: size,
-    label: `${size} mục/trang`,
-}));
 
 const ComponentViewDomain: React.FC = () => {
     const [items, setItems] = useState<DomainData[]>(initialData);
@@ -141,7 +103,7 @@ const ComponentViewDomain: React.FC = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [pageSize]);
+    }, [pageSize, search]);
 
     const filteredAndSortedRecords = useMemo(() => {
         let filtered = items.filter((item) => {
@@ -157,7 +119,7 @@ const ComponentViewDomain: React.FC = () => {
         });
 
         if (sortStatus.columnAccessor) {
-            filtered = sortBy(filtered, sortStatus.columnAccessor);
+            filtered = lodashSortBy(filtered, sortStatus.columnAccessor);
             if (sortStatus.direction === 'desc') {
                 filtered = filtered.reverse();
             }
@@ -176,6 +138,7 @@ const ComponentViewDomain: React.FC = () => {
         return Math.ceil(filteredAndSortedRecords.length / pageSize);
     }, [filteredAndSortedRecords.length, pageSize]);
 
+    // Đảm bảo trang hiện tại không vượt quá tổng số trang
     useEffect(() => {
         if (page > totalPages) {
             setPage(totalPages > 0 ? totalPages : 1);
@@ -212,6 +175,7 @@ const ComponentViewDomain: React.FC = () => {
             accessor: 'domain',
             title: 'Tên miền',
             sortable: true,
+            textAlignment: 'center',
             render: ({ domain }) => (
                 <Link href={`/domains/${domain}/view`} className="text-blue-500 underline hover:no-underline">
                     {domain}
@@ -222,16 +186,19 @@ const ComponentViewDomain: React.FC = () => {
             accessor: 'siteType',
             title: 'Loại site',
             sortable: true,
+            textAlignment: 'center',
         },
         {
             accessor: 'siteGroup',
             title: 'Nhóm site',
             sortable: true,
+            textAlignment: 'center',
         },
         {
             accessor: 'status',
             title: 'Trạng thái',
             sortable: true,
+            textAlignment: 'center',
             render: ({ status }) => (
                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status.toLowerCase() === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {status}
@@ -242,62 +209,67 @@ const ComponentViewDomain: React.FC = () => {
             accessor: 'traffic',
             title: 'Lưu lượng',
             sortable: true,
-            textAlignment: 'right',
+            textAlignment: 'center',
             render: ({ traffic }) => traffic.toLocaleString(),
         },
         {
             accessor: 'display',
             title: 'Hiển thị',
             sortable: true,
+            textAlignment: 'center',
         },
         {
             accessor: 'searchTraffic',
             title: 'Lưu lượng tìm kiếm',
             sortable: true,
-            textAlignment: 'right',
+            textAlignment: 'center',
             render: ({ searchTraffic }) => searchTraffic.toLocaleString(),
         },
         {
             accessor: 'checkIndex',
             title: 'Kiểm tra chỉ mục',
             sortable: true,
+            textAlignment: 'center',
             render: ({ checkIndex }) => (checkIndex ? 'Có' : 'Không'),
         },
         {
             accessor: 'searchSEO',
             title: 'SEO',
             sortable: true,
+            textAlignment: 'center',
         },
         {
             accessor: 'siteIndexDate',
             title: 'Ngày chỉ mục',
             sortable: true,
+            textAlignment: 'center',
             render: ({ siteIndexDate }) => new Date(siteIndexDate).toLocaleDateString(),
         },
         {
             accessor: 'keywordFile',
             title: 'Tập tin từ khóa',
             sortable: true,
+            textAlignment: 'center',
         },
         {
             accessor: 'totalPosts',
             title: 'Tổng bài viết',
             sortable: true,
-            textAlignment: 'right',
+            textAlignment: 'center',
             render: ({ totalPosts }) => totalPosts.toLocaleString(),
         },
         {
             accessor: 'postsPosted',
             title: 'Bài viết đã đăng',
             sortable: true,
-            textAlignment: 'right',
+            textAlignment: 'center',
             render: ({ postsPosted }) => postsPosted.toLocaleString(),
         },
         {
             accessor: 'draft',
             title: 'Nháp',
             sortable: true,
-            textAlignment: 'right',
+            textAlignment: 'center',
             render: ({ draft }) => draft.toLocaleString(),
         },
         {
@@ -325,7 +297,7 @@ const ComponentViewDomain: React.FC = () => {
         <div className="p-4">
             <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
                 <div className="invoice-table">
-                    <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
+                    <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center justify-between">
                         <div className="flex items-center gap-2">
                             <button type="button" className="btn btn-danger gap-2 flex items-center" onClick={() => handleDelete()} disabled={selectedRecords.length === 0}>
                                 <IconTrashLines />
@@ -336,6 +308,16 @@ const ComponentViewDomain: React.FC = () => {
                                 Thêm mới
                             </Link>
                         </div>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => {
+                                setSearch(e.target.value);
+                                setPage(1);
+                            }}
+                            placeholder="Tìm kiếm..."
+                            className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
+                        />
                     </div>
 
                     <div className="datatables pagination-padding">
@@ -353,9 +335,14 @@ const ComponentViewDomain: React.FC = () => {
                                 setPage(1);
                             }}
                             sortStatus={sortStatus}
+                            onSortStatusChange={({ columnAccessor, direction }) => {
+                                setSortStatus({ columnAccessor: columnAccessor as keyof DomainData, direction: direction as 'asc' | 'desc' });
+                                setPage(1);
+                            }}
                             selectedRecords={selectedRecords}
                             onSelectedRecordsChange={setSelectedRecords}
                             paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
+                            highlightOnHover
                         />
                     </div>
                 </div>
