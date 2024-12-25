@@ -28,8 +28,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     const days = url.searchParams.get('days');
     const start = url.searchParams.get('start');
     const end = url.searchParams.get('end');
+    const propertyId = url.searchParams.get('propertyId') || '';
 
-    const propertyId = 'properties/468431477';
     const metrics: Metric[] = [{ name: params.metric }];
 
     let dateRanges: DateRange[] = [];

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
                 startDate: start,
                 endDate: end,
                 dimensions: ['query'],
-                rowLimit: 1000,
+                rowLimit: 5000,
             },
         });
 

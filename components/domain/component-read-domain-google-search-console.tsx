@@ -75,7 +75,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
     ];
 
     return (
-        <div className="p-4">
+        <>
             <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
                 <div className="mb-4 flex-col md:flex-row items-center justify-between gap-4 flex px-4">
                     <h5 className="text-lg font-semibold mb-2 dark:text-white">Google Search Console</h5>
@@ -91,7 +91,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                         className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
                     />
                 </div>
-                <div className="datatables pagination-padding">
+                <div className="datatables pagination-padding overflow-auto h-[70dvh]">
                     <DataTable
                         className="table-hover whitespace-nowrap"
                         records={gscData}
@@ -100,7 +100,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                         recordsPerPage={limit}
                         page={page}
                         onPageChange={setPage}
-                        recordsPerPageOptions={[10, 20, 30, 50, 100]}
+                        recordsPerPageOptions={[10, 20, 30, 50, 100, 200, 500, 1000, 2000, 5000]}
                         onRecordsPerPageChange={(size) => {
                             setLimit(size);
                             setPage(1);
@@ -121,7 +121,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                     </div>
                 )}
             </div>
-        </div>
+        </>
     );
 };
 

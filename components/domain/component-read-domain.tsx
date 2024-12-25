@@ -9,6 +9,8 @@ import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 
 import IconCalendar from '@/components/icon/icon-calendar';
+import IconAnalytics from '@/components/icon/icon-analytics';
+import IconGoogleSearchConsole from '@/components/icon/icon-google-search-console';
 
 import ComponentReadDomainAnalytics from '@/components/domain/component-read-domain-analytics';
 import ComponentReadDomainGoogleSearchConsole from '@/components/domain/component-read-domain-google-search-console';
@@ -168,6 +170,7 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
+                                    <IconGoogleSearchConsole className="h-5 w-5" />
                                     <p className="ml-2 hidden md:block ">Search Console</p>
                                 </button>
                             )}
@@ -179,6 +182,7 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
+                                    <IconAnalytics className="h-5 w-5" />
                                     <p className="ml-2 hidden md:block ">Analytics</p>
                                 </button>
                             )}

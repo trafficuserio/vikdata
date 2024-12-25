@@ -6,13 +6,16 @@ import { toggleSidebar } from '@/store/themeConfigSlice';
 import AnimateHeight from 'react-animate-height';
 import { IRootState } from '@/store';
 import { useState, useEffect } from 'react';
+import IconUser from '@/components/icon/icon-user';
 import IconCaretsDown from '@/components/icon/icon-carets-down';
 import IconMenuDashboard from '@/components/icon/menu/icon-menu-dashboard';
 
 import IconMenuDomain from '@/components/icon/menu/icon-menu-domain';
+import IconSearchGoogle from '@/components/icon/icon-search-google';
 
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
+import Cookies from 'js-cookie';
 
 const Sidebar = () => {
     const dispatch = useDispatch();
@@ -27,6 +30,7 @@ const Sidebar = () => {
             return oldValue === value ? '' : value;
         });
     };
+    const role = Cookies.get('role');
 
     useEffect(() => {
         const selector = document.querySelector('.sidebar ul a[href="' + window.location.pathname + '"]');
@@ -100,6 +104,24 @@ const Sidebar = () => {
                                     </div>
                                 </Link>
                             </li>
+                            <li className="menu nav-item">
+                                <Link href="/google-search-api" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconSearchGoogle className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Google Search API</span>
+                                    </div>
+                                </Link>
+                            </li>
+                            {role === 'root' && (
+                                <li className="menu nav-item">
+                                    <Link href="/admin" className="nav-link group">
+                                        <div className="flex items-center">
+                                            <IconUser className="shrink-0 group-hover:!text-primary" fill={true} />
+                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Admin</span>
+                                        </div>
+                                    </Link>
+                                </li>
+                            )}
                         </ul>
                     </PerfectScrollbar>
                 </div>

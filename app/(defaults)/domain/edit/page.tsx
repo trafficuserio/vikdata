@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 import React from 'react';
-import ComponentViewDomain from '@/components/domain/component-list-domain';
+import ComponentEditDomain from '@/components/domain/component-edit-domain';
 
 export const metadata: Metadata = {
-    title: 'Danh sách Domain',
+    title: 'Chỉnh sửa Domain',
 };
 
 const Domain = () => {
-    return <ComponentViewDomain />;
+    return <ComponentEditDomain />;
 };
 
 export default Domain;

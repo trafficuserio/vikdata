@@ -92,7 +92,7 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
 
         Promise.all(
             metrics.map((metric) =>
-                fetch(`/api/analytics/${metric}?start=${start}&end=${end}`).then((r) => {
+                fetch(`/api/analytics/${metric}?start=${start}&end=${end}&propertyId=${'properties/468431477'}`).then((r) => {
                     if (!r.ok) throw new Error('GA fetch error');
                     return r.json();
                 }),
@@ -300,7 +300,7 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
 
                     <div className="panel mt-4 h-full xl:col-span-2">
                         <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
-                            <h5 className="text-lg font-semibold">Biểu đồ thống kê</h5>
+                            <h5 className="text-lg font-semibold">Biểu đồ Analytics</h5>
                         </div>
                         <div className="relative">
                             <div className="rounded-lg bg-white dark:bg-black">
