@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSearchConsoleClient } from '@/lib/googleSearchConsole';
 
 const getDomainInfoById = async (domainId: string, token: string) => {
+    console.log('domainId', domainId);
+    console.log('token', token);
+    console.log('process.env.NEXT_PUBLIC_URL_API', process.env.NEXT_PUBLIC_URL_API);
     const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
         headers: {
             'Content-Type': 'application/json',
@@ -12,6 +15,7 @@ const getDomainInfoById = async (domainId: string, token: string) => {
     });
 
     if (!res.ok) {
+        console.log(JSON.stringify(res));
         throw new Error('Failed to fetch domain information');
     }
 
