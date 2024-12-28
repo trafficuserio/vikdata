@@ -86,6 +86,9 @@ const ComponentsAuthRegisterForm = () => {
                         <div className="text-center text-success">
                             <p>{success}</p>
                         </div>
+                        <Link href="/auth/login" className="block text-center btn btn-primary mt-4">
+                            Đăng nhập
+                        </Link>
                     </div>
                 </div>
             </div>
