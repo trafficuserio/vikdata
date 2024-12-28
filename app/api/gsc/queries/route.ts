@@ -65,11 +65,13 @@ export async function GET(req: NextRequest) {
 
     try {
         const domainInfo = await getDomainInfoById(domainId, token);
-        const keySearchConsole = domainInfo.key_search_console;
+        let keySearchConsole = domainInfo.key_search_console;
         const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
         console.log(keySearchConsole);
+        keySearchConsole = JSON.parse(keySearchConsole);
         const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
 
+        
         const response = await searchConsoleClient.searchanalytics.query({
             siteUrl: domain,
             requestBody: {
