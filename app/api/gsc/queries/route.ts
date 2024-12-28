@@ -4,19 +4,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSearchConsoleClient } from '@/lib/googleSearchConsole';
 
 const getDomainInfoById = async (domainId: string, token: string) => {
-    console.log('domainId', domainId);
-    console.log('token', token);
-    console.log('process.env.NEXT_PUBLIC_URL_API', process.env.NEXT_PUBLIC_URL_API);
     const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
         },
     });
-    console.log('res', res);
-    const data = await res.json();
 
-    console.log('data', data);
+    if (!res.ok) {
+        throw new Error('Failed to fetch domain information');
+    }
+
+    const data = await res.json();
 
     if (data.errorcode !== 200) {
         throw new Error(data.message || 'Error fetching domain information');
@@ -35,17 +34,24 @@ export async function GET(req: NextRequest) {
     const sortByParam = url.searchParams.get('sortBy') || 'query';
     const sortOrder = url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc';
     const search = url.searchParams.get('search') || '';
+    const dimensionsParam = url.searchParams.get('dimensions') || 'query';
 
     type GSCDataKey = keyof {
         query: string;
+        date: string;
         clicks: number;
         impressions: number;
         ctr: number;
         position: number;
     };
 
-    const validSortBy: GSCDataKey[] = ['query', 'clicks', 'impressions', 'ctr', 'position'];
-    const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : 'query';
+    const validDimensions: GSCDataKey[] = ['query', 'date'];
+    const dimensions: string[] = validDimensions.includes(dimensionsParam as GSCDataKey) ? [dimensionsParam] : ['query']; // Default to 'query' if invalid
+
+    // Update sortBy validation based on dimensions
+    const validSortBy: GSCDataKey[] = dimensions.includes('date') ? ['date', 'clicks', 'impressions', 'ctr', 'position'] : ['query', 'clicks', 'impressions', 'ctr', 'position'];
+
+    const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : dimensions.includes('date') ? 'date' : 'query';
 
     if (!domainId) {
         return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 });
@@ -59,52 +65,67 @@ export async function GET(req: NextRequest) {
 
     try {
         const domainInfo = await getDomainInfoById(domainId, token);
-        if (!domainInfo) {
-            return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
+        let keySearchConsole = domainInfo.key_search_console;
+        const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
+        console.log(keySearchConsole);
+        keySearchConsole = JSON.parse(keySearchConsole);
+        const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
+
+        const response = await searchConsoleClient.searchanalytics.query({
+            siteUrl: domain,
+            requestBody: {
+                startDate: start,
+                endDate: end,
+                dimensions: dimensions, // Use dynamic dimensions
+                rowLimit: 5000,
+            },
+        });
+
+        let rows = response.data.rows || [];
+        let data: any[] = [];
+
+        if (dimensions.includes('date')) {
+            data = rows.map((row) => ({
+                date: row.keys?.[0] || '',
+                clicks: row.clicks || 0,
+                impressions: row.impressions || 0,
+                ctr: row.ctr || 0,
+                position: row.position || 0,
+            }));
+        } else {
+            data = rows.map((row) => ({
+                query: row.keys?.[0] || '',
+                clicks: row.clicks || 0,
+                impressions: row.impressions || 0,
+                ctr: row.ctr || 0,
+                position: row.position || 0,
+            }));
         }
-        // const keySearchConsole = domainInfo.key_search_console;
-        // // const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
-        // const domain = {};
 
-        // // const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
+        // Apply search filter if necessary
+        if (search) {
+            const searchLower = search.toLowerCase();
+            if (dimensions.includes('date')) {
+                data = data.filter((item) => item.date.toLowerCase().includes(searchLower));
+            } else {
+                data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
+            }
+        }
 
-        // // const response = await searchConsoleClient.searchanalytics.query({
-        // //     siteUrl: domain,
-        // //     requestBody: {
-        // //         startDate: start,
-        // //         endDate: end,
-        // //         dimensions: ['query'],
-        // //         rowLimit: 5000,
-        // //     },
-        // // });
+        // Sorting
+        data = data.sort((a, b) => {
+            if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
+            if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
 
-        // let rows = response.data.rows || [];
-        // let data = rows.map((row) => ({
-        //     query: row.keys?.[0] || '',
-        //     clicks: row.clicks || 0,
-        //     impressions: row.impressions || 0,
-        //     ctr: row.ctr || 0,
-        //     position: row.position || 0,
-        // }));
+        const total = data.length;
+        const startIndex = (page - 1) * limit;
+        const paginatedData = data.slice(startIndex, startIndex + limit);
 
-        // if (search) {
-        //     const searchLower = search.toLowerCase();
-        //     data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
-        // }
-
-        // data = data.sort((a, b) => {
-        //     if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
-        //     if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
-        //     return 0;
-        // });
-
-        // const total = data.length;
-        // const startIndex = (page - 1) * limit;
-        // const paginatedData = data.slice(startIndex, startIndex + limit);
-
-        return NextResponse.json({ data: domainInfo, total: 0 });
+        return NextResponse.json({ data: paginatedData, total });
     } catch (err: any) {
         console.error(err);
-        return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC' }, { status: 500 });
+        return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC API' + err }, { status: 500 });
     }
 }
