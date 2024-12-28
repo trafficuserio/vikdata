@@ -7,6 +7,8 @@ import ReactApexChart from 'react-apexcharts';
 import ApexCharts from 'apexcharts';
 import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 interface MetricsData {
     [key: string]: string;
@@ -73,8 +75,13 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
     const [chartData, setChartData] = useState<ChartData | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const [isLoadingGA, setIsLoadingGA] = useState(false);
+    const [propertyId, setPropertyId] = useState<string>('');
+
+    const searchParams = useSearchParams();
+    const domainId = searchParams.get('id');
 
     const metrics = Object.keys(friendlyNames);
+    const token = Cookies.get('token');
 
     const formatNumber = (value: number | string) => {
         return new Intl.NumberFormat('vi-VN').format(Number(value));
@@ -85,14 +92,49 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
     }, []);
 
     useEffect(() => {
-        if (!startDate || !endDate) return;
+        if (!domainId) {
+            setErrorGA('Domain ID is not provided');
+            return;
+        }
+
+        const fetchDomainInfo = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (!res.ok) {
+                    throw new Error('Failed to fetch domain information');
+                }
+
+                const data = await res.json();
+
+                if (data.errorcode !== 200) {
+                    throw new Error(data.message || 'Error fetching domain information');
+                }
+
+                setPropertyId(data.data.property_id);
+            } catch (error: any) {
+                console.error('Error fetching domain info:', error);
+                setErrorGA(error.message || 'Lỗi khi lấy thông tin domain');
+            }
+        };
+
+        fetchDomainInfo();
+    }, [domainId]);
+
+    useEffect(() => {
+        if (!startDate || !endDate || !propertyId) return;
         setIsLoadingGA(true);
         const start = dayjs(startDate).format('YYYY-MM-DD');
         const end = dayjs(endDate).format('YYYY-MM-DD');
 
         Promise.all(
             metrics.map((metric) =>
-                fetch(`/api/analytics/${metric}?start=${start}&end=${end}&propertyId=${'properties/468431477'}`).then((r) => {
+                fetch(`/api/analytics/${metric}?start=${start}&end=${end}&domainId=${domainId}`).then((r) => {
                     if (!r.ok) throw new Error('GA fetch error');
                     return r.json();
                 }),
@@ -263,15 +305,16 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
                 });
                 setErrorGA(null);
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Error fetching analytics data:', error);
                 setErrorGA('Lỗi khi lấy dữ liệu GA');
             })
             .finally(() => {
                 setIsLoadingGA(false);
             });
-    }, [startDate, endDate]);
+    }, [startDate, endDate, propertyId, domainId]);
 
-    if (errorGA) return <div>{errorGA}</div>;
+    if (errorGA) return <div className="text-red-500">{errorGA}</div>;
 
     return (
         <div>

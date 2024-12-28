@@ -8,25 +8,39 @@ import Cookies from 'js-cookie';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import logout from '@/utils/logout';
 
-import IconEye from '@/components/icon/icon-eye';
-import IconEdit from '@/components/icon/icon-edit';
-import IconPlus from '@/components/icon/icon-plus';
 import IconTrash from '@/components/icon/icon-trash';
+import IconPlus from '@/components/icon/icon-plus';
 import IconRefresh from '@/components/icon/icon-refresh';
+import IconEdit from '@/components/icon/icon-edit';
+
+import { useSearchParams } from 'next/navigation';
 
 interface KeywordData {
     id: number;
     keyword: string;
     urlKeyword: string;
     geolocation?: string;
-    hostLanguage?: string;
+    host_language?: string;
     domainId?: number;
+}
+
+interface ApiResponse {
+    errorcode: number;
+    message: string;
+    data: {
+        rows: KeywordData[];
+        total: number;
+    };
 }
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
 
 export default function ComponentListKeyword() {
     const token = Cookies.get('token');
+    const searchParams = useSearchParams();
+    const idGoogleSearchParam = searchParams.get('idGoogleSearch');
+    const idGoogleSearch = idGoogleSearchParam ? Number(idGoogleSearchParam) : NaN;
+
     const [keywords, setKeywords] = useState<KeywordData[]>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
@@ -39,49 +53,68 @@ export default function ComponentListKeyword() {
         direction: 'asc',
     });
     const [selectedRecords, setSelectedRecords] = useState<KeywordData[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [totalRecords, setTotalRecords] = useState<number>(0);
 
     useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        console.log('idGoogleSearch:', idGoogleSearch);
+        if (!isNaN(idGoogleSearch) && idGoogleSearch > 0) {
+            fetchData();
+        } else {
+            ShowMessageError({ content: 'ID Google Search không hợp lệ' });
+        }
+    }, [idGoogleSearch]);
 
     async function fetchData() {
+        setIsLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-list-infor-keyword?page=1&limit=100`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-list-keyword-by-domain-id?domainId=${idGoogleSearch}&page=1&limit=1000`, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
             });
-            const data = await res.json();
+            const data: ApiResponse = await res.json();
 
             if (!data) {
                 ShowMessageError({ content: 'Dữ liệu trả về không đúng cấu trúc' });
+                setIsLoading(false);
                 return;
             }
 
             if ([401, 403].includes(data.errorcode)) {
                 ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
                 logout();
+                setIsLoading(false);
                 return;
             }
 
             if (data.errorcode === 200) {
-                const rows = data.data.rows || [];
-                const mapped = rows.map((row: any) => ({
-                    id: row.id,
-                    keyword: row.keyword,
-                    urlKeyword: row.url_keyword,
-                    domainId: row.domain_id,
-                    geolocation: row.geolocation,
-                    hostLanguage: row.host_language,
-                }));
-                setKeywords(mapped);
+                const keywordsArray = data.data?.rows;
+                const total = data.data?.total || 0;
+                setTotalRecords(total);
+                if (keywordsArray && Array.isArray(keywordsArray) && keywordsArray.length > 0) {
+                    const mapped: KeywordData[] = keywordsArray.map((keyword) => ({
+                        id: keyword.id,
+                        keyword: keyword.keyword,
+                        urlKeyword: keyword.urlKeyword,
+                        domainId: keyword.domainId,
+                        geolocation: keyword.geolocation,
+                        hostLanguage: keyword.host_language,
+                    }));
+                    setKeywords(mapped);
+                } else {
+                    setKeywords([]);
+                    ShowMessageError({ content: 'Không có dữ liệu keyword' });
+                }
             } else {
                 ShowMessageError({ content: data.message || 'Không thể tải danh sách keyword' });
             }
         } catch (error) {
             ShowMessageError({ content: 'Lỗi khi tải dữ liệu' });
+            console.error('Fetch data error:', error);
+        } finally {
+            setIsLoading(false); // End loading
         }
     }
 
@@ -207,6 +240,9 @@ export default function ComponentListKeyword() {
             textAlignment: 'center',
             render: (record) => (
                 <div className="flex gap-2 justify-center">
+                    <Link href={`/domain/keyword/edit?id=${record.id}&idGoogleSearch=${idGoogleSearch}`} className="text-yellow-500 hover:text-yellow-700">
+                        <IconEdit />
+                    </Link>
                     <button onClick={() => handleDeleteSingle(record.id)} className="text-red-500 hover:text-red-700">
                         <IconTrash />
                     </button>
@@ -221,7 +257,7 @@ export default function ComponentListKeyword() {
                 <div className="invoice-table">
                     <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center justify-between">
                         <div className="flex gap-2">
-                            <Link href="/google-search-api/keyword/add" className="btn btn-primary gap-2 flex items-center">
+                            <Link href={`/domain/keyword/add?idGoogleSearch=${idGoogleSearch}`} className="btn btn-primary gap-2 flex items-center">
                                 <IconPlus />
                                 Thêm mới
                             </Link>
@@ -245,31 +281,37 @@ export default function ComponentListKeyword() {
                         />
                     </div>
                     <div className="datatables pagination-padding">
-                        <DataTable
-                            className="table-hover whitespace-nowrap"
-                            records={paginatedRecords}
-                            columns={columns}
-                            totalRecords={filteredAndSortedData.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={setPage}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={(size) => {
-                                setPageSize(size);
-                                setPage(1);
-                            }}
-                            sortStatus={sortStatus}
-                            onSortStatusChange={(sortStatus) => {
-                                setSortStatus({
-                                    columnAccessor: sortStatus.columnAccessor as keyof KeywordData,
-                                    direction: sortStatus.direction,
-                                });
-                            }}
-                            selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={setSelectedRecords}
-                            paginationText={({ from, to, totalRecords }) => `Hiển thị ${from} - ${to} trong tổng số ${totalRecords} mục`}
-                            highlightOnHover
-                        />
+                        {isLoading ? (
+                            <div className="text-center py-10">Đang tải dữ liệu...</div>
+                        ) : keywords.length > 0 ? (
+                            <DataTable
+                                className="table-hover whitespace-nowrap"
+                                records={paginatedRecords}
+                                columns={columns}
+                                totalRecords={filteredAndSortedData.length}
+                                recordsPerPage={pageSize}
+                                page={page}
+                                onPageChange={setPage}
+                                recordsPerPageOptions={PAGE_SIZES}
+                                onRecordsPerPageChange={(size) => {
+                                    setPageSize(size);
+                                    setPage(1);
+                                }}
+                                sortStatus={sortStatus}
+                                onSortStatusChange={(sortStatus) => {
+                                    setSortStatus({
+                                        columnAccessor: sortStatus.columnAccessor as keyof KeywordData,
+                                        direction: sortStatus.direction,
+                                    });
+                                }}
+                                selectedRecords={selectedRecords}
+                                onSelectedRecordsChange={setSelectedRecords}
+                                paginationText={({ from, to, totalRecords }) => `Hiển thị ${from} - ${to} trong tổng số ${totalRecords} mục`}
+                                highlightOnHover
+                            />
+                        ) : (
+                            <div className="text-center py-10">Không có dữ liệu hiển thị.</div>
+                        )}
                     </div>
                 </div>
             </div>

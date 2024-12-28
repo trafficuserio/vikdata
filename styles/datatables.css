@@ -45,7 +45,7 @@ table tr .mantine-Checkbox-root {
     direction: rtl;
 }
 .mantine-Table-root[data-hover] tbody tr:hover {
-    @apply !bg-[#e0e6ed33] dark:!bg-[#1a2941]/40;
+    @apply bg-[#e0e6ed33] dark:bg-[#1a2941]/40;
 }
 .mantine-Table-root[data-striped] tbody tr:nth-of-type(odd) {
     @apply bg-white-light/20 dark:!bg-[#1a2941]/40;

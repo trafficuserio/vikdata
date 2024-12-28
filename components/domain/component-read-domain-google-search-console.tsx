@@ -6,6 +6,8 @@ import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
+import Cookies from 'js-cookie';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface GSCData {
     query: string;
@@ -33,20 +35,22 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [search, setSearch] = useState<string>('');
 
+    const searchParams = useSearchParams();
+    const domainId = searchParams.get('id');
+
     const formatNumber = (value: number | string) => {
         return new Intl.NumberFormat('vi-VN').format(Number(value));
     };
 
     useEffect(() => {
-        if (!startDate || !endDate) return;
+        if (!startDate || !endDate || !domainId) return;
         setIsLoadingGSC(true);
         const fetchData = async () => {
             try {
                 const start = dayjs(startDate).format('YYYY-MM-DD');
                 const endFormatted = dayjs(endDate).format('YYYY-MM-DD');
-                const siteUrl = 'https://thoitiet4m.com/';
                 const response = await fetch(
-                    `/api/gsc/queries?start=${start}&end=${endFormatted}&siteUrl=${siteUrl}&limit=${limit}&page=${page}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}`,
+                    `/api/gsc/queries?start=${start}&end=${endFormatted}&domainId=${domainId}&limit=${limit}&page=${page}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}`,
                 );
                 if (!response.ok) {
                     throw new Error('Lỗi khi lấy dữ liệu GSC');
@@ -55,16 +59,17 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                 setGscData(result.data);
                 setTotal(result.total);
                 setErrorGSC(null);
-            } catch (error) {
+            } catch (error: any) {
+                console.error('Error fetching GSC data:', error);
                 setErrorGSC('Lỗi khi lấy dữ liệu GSC');
             } finally {
                 setIsLoadingGSC(false);
             }
         };
         fetchData();
-    }, [startDate, endDate, page, limit, sortBy, sortOrder, search]);
+    }, [startDate, endDate, domainId, page, limit, sortBy, sortOrder, search]);
 
-    if (errorGSC) return <div>{errorGSC}</div>;
+    if (errorGSC) return <div className="text-red-500">{errorGSC}</div>;
 
     const columns: DataTableColumn<GSCData>[] = [
         { accessor: 'query', title: 'Từ khóa', sortable: true },

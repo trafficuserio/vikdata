@@ -1,19 +1,19 @@
-// app/components/domain/component-read-domain.tsx
-
 'use client';
 import { Tab } from '@headlessui/react';
 import { getTranslation } from '@/i18n';
 import React, { useEffect, useState, Fragment, useRef } from 'react';
-
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
-
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconAnalytics from '@/components/icon/icon-analytics';
 import IconGoogleSearchConsole from '@/components/icon/icon-google-search-console';
+import IconAdSense from '@/components/icon/icon-adsense';
+import IconInfo from '@/components/icon/icon-info';
 
 import ComponentReadDomainAnalytics from '@/components/domain/component-read-domain-analytics';
 import ComponentReadDomainGoogleSearchConsole from '@/components/domain/component-read-domain-google-search-console';
+import ComponentReadDomainAdsense from '@/components/domain/component-read-domain-adsense';
+import ComponentReadDomainInfo from '@/components/domain/component-read-domain-info';
 import dayjs from 'dayjs';
 
 const shortcutsItems = [
@@ -50,11 +50,7 @@ const shortcutsItems = [
 const ComponentsStatistical = () => {
     const { t } = getTranslation();
 
-    const [startDate, setStartDate] = useState<Date | null>(() => {
-        const date = new Date();
-        date.setDate(date.getDate() - 7);
-        return date;
-    });
+    const [startDate, setStartDate] = useState<Date | null>(() => dayjs().subtract(7, 'day').toDate());
     const [endDate, setEndDate] = useState<Date | null>(new Date());
     const [tempStartDate, setTempStartDate] = useState<Date | null>(null);
     const [tempEndDate, setTempEndDate] = useState<Date | null>(null);
@@ -170,8 +166,20 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
+                                    <IconInfo className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Thông tin</p>
+                                </button>
+                            )}
+                        </Tab>
+                        <Tab as={Fragment}>
+                            {(tabProps) => (
+                                <button
+                                    className={`${
+                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
+                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
+                                >
                                     <IconGoogleSearchConsole className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block ">Search Console</p>
+                                    <p className="ml-2 hidden md:block">Search Console</p>
                                 </button>
                             )}
                         </Tab>
@@ -183,7 +191,19 @@ const ComponentsStatistical = () => {
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
                                     <IconAnalytics className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block ">Analytics</p>
+                                    <p className="ml-2 hidden md:block">Analytics</p>
+                                </button>
+                            )}
+                        </Tab>
+                        <Tab as={Fragment}>
+                            {(tabProps) => (
+                                <button
+                                    className={`${
+                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
+                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
+                                >
+                                    <IconAdSense className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Adsense</p>
                                 </button>
                             )}
                         </Tab>
@@ -205,9 +225,9 @@ const ComponentsStatistical = () => {
                                 <div className="flex w-full flex-col justify-between gap-2">
                                     <div className="flex flex-1 flex-col gap-2">
                                         <p className="hidden md:block">Chọn ngày</p>
-                                        <div className="">
+                                        <div>
                                             <Flatpickr
-                                                value={tempStartDate ? dayjs(tempStartDate).toDate() : undefined}
+                                                value={tempStartDate || undefined}
                                                 options={{
                                                     dateFormat: 'd-m-Y',
                                                 }}
@@ -216,9 +236,9 @@ const ComponentsStatistical = () => {
                                                 onChange={handleStartDateChange}
                                             />
                                         </div>
-                                        <div className="">
+                                        <div>
                                             <Flatpickr
-                                                value={tempEndDate ? dayjs(tempEndDate).toDate() : undefined}
+                                                value={tempEndDate || undefined}
                                                 options={{
                                                     dateFormat: 'd-m-Y',
                                                 }}
@@ -250,10 +270,16 @@ const ComponentsStatistical = () => {
                 </Tab.List>
                 <Tab.Panels>
                     <Tab.Panel>
+                        <ComponentReadDomainInfo />
+                    </Tab.Panel>
+                    <Tab.Panel>
                         <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentReadDomainAnalytics startDate={startDate} endDate={endDate} />
+                    </Tab.Panel>
+                    <Tab.Panel>
+                        <ComponentReadDomainAdsense startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                 </Tab.Panels>
             </Tab.Group>

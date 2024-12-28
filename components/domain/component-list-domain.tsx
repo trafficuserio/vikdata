@@ -1,3 +1,5 @@
+// app/components/domain/component-list-domain.tsx
+
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
@@ -12,6 +14,47 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrash from '@/components/icon/icon-trash';
 import IconRefresh from '@/components/icon/icon-refresh';
+import IconKeyword from '@/components/icon/icon-keyword';
+
+interface KeyAnalytics {
+    type: string;
+    project_id: string;
+    private_key_id: string;
+    private_key: string;
+    client_email: string;
+    client_id: string;
+    auth_uri: string;
+    token_uri: string;
+    auth_provider_x509_cert_url: string;
+    client_x509_cert_url: string;
+    universe_domain: string;
+}
+
+interface KeySearchConsole {
+    type: string;
+    project_id: string;
+    private_key_id: string;
+    private_key: string;
+    client_email: string;
+    client_id: string;
+    auth_uri: string;
+    token_uri: string;
+    auth_provider_x509_cert_url: string;
+    client_x509_cert_url: string;
+    universe_domain: string;
+}
+
+interface ClientSecretAds {
+    installed: {
+        client_id: string;
+        project_id: string;
+        auth_uri: string;
+        token_uri: string;
+        auth_provider_x509_cert_url: string;
+        client_secret: string;
+        redirect_uris: string[];
+    };
+}
 
 interface DomainData {
     id: number;
@@ -19,9 +62,9 @@ interface DomainData {
     typeSite: string;
     groupSite: string;
     person: string;
-    keyAnalytics: string;
+    keyAnalytics: KeyAnalytics;
     propertyId: string;
-    keySearchConsole: string;
+    keySearchConsole: KeySearchConsole;
     keyWordpress: string;
     keyAdsense: string;
     status: boolean;
@@ -30,6 +73,10 @@ interface DomainData {
     timeRegDomain: string | null;
     fileKeyword: string;
     description?: string | null;
+    refreshTokenAds: string;
+    clientIdAds: string;
+    clientSecretAds: ClientSecretAds;
+    accountIdAds: string;
 }
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -93,6 +140,10 @@ export default function ComponentListDomain() {
                     timeRegDomain: item.time_reg_domain,
                     fileKeyword: item.file_key_word || '',
                     description: item.description || '',
+                    refreshTokenAds: item.refresh_token_ads,
+                    clientIdAds: item.client_id_ads,
+                    clientSecretAds: item.client_secret_ads,
+                    accountIdAds: item.account_id_ads,
                 }));
                 setDomains(mapped);
             } else {
@@ -100,6 +151,7 @@ export default function ComponentListDomain() {
             }
         } catch (error) {
             ShowMessageError({ content: 'Lỗi khi tải dữ liệu' });
+            console.error('Fetch data error:', error);
         }
     }
 
@@ -189,6 +241,7 @@ export default function ComponentListDomain() {
             }
         } catch (error) {
             ShowMessageError({ content: 'Lỗi khi xóa' });
+            console.error('Handle delete error:', error);
         }
     }
 
@@ -219,7 +272,7 @@ export default function ComponentListDomain() {
             textAlignment: 'left',
             render: ({ status }) => (
                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {status ? 'Active' : 'Inactive'}
+                    {status ? 'Hoạt động' : 'Không hoạt động'}
                 </span>
             ),
         },
@@ -268,6 +321,9 @@ export default function ComponentListDomain() {
                     <Link href={`/domain/edit?id=${item.id}`} className="text-yellow-500 hover:text-yellow-700">
                         <IconEdit />
                     </Link>
+                    <Link href={`/domain/keyword?idGoogleSearch=${item.id}`} className="text-primary hover:text-primary-dark">
+                        <IconKeyword />
+                    </Link>
                     <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}>
                         <IconTrash />
                     </button>
@@ -275,6 +331,19 @@ export default function ComponentListDomain() {
             ),
         },
     ];
+
+    /**
+     * Function to determine if the `timeRegDomain` is older than 11 months from today.
+     * @param timeRegDomain - The registration date of the domain.
+     * @returns A boolean indicating whether the domain is expired.
+     */
+    const isDomainExpired = (timeRegDomain: string | null): boolean => {
+        if (!timeRegDomain) return false; // If no date provided, do not highlight
+        const regDate = new Date(timeRegDomain);
+        const today = new Date();
+        const elevenMonthsAgo = new Date(today.setMonth(today.getMonth() - 11));
+        return regDate < elevenMonthsAgo;
+    };
 
     return (
         <div className="p-4">
@@ -332,6 +401,7 @@ export default function ComponentListDomain() {
                             onSelectedRecordsChange={setSelectedRecords}
                             paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
                             highlightOnHover
+                            rowClassName={(record) => (isDomainExpired(record.timeRegDomain) ? '!bg-red-300 hover:!bg-red-200 text-black' : '')}
                         />
                     </div>
                 </div>

@@ -1,22 +1,19 @@
-/*========== SCROLL BAR ==========*/
 ::-webkit-scrollbar {
     width: 0.4rem;
-    background-color: rgba(67, 97, 238, 0.15);
-    border-radius: 5rem;
-}
-
-::-webkit-scrollbar-thumb {
-    background-color: rgb(128 93 202 / 15%);
-    border-radius: 0.5rem;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 171, 85, 0.15);
 }
 
 ::-webkit-scrollbar-track {
-    background-color: rgba(67, 97, 238, 0.15);
-    border-radius: 5rem;
+    background: #f1f1f1;
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 .no-select {

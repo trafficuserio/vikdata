@@ -1,13 +1,34 @@
 // app/(defaults)/api/gsc/queries/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import webmasters from '@/lib/googleSearchConsole';
+import { createSearchConsoleClient } from '@/lib/googleSearchConsole';
+
+const getDomainInfoById = async (domainId: string, token: string) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to fetch domain information');
+    }
+
+    const data = await res.json();
+
+    if (data.errorcode !== 200) {
+        throw new Error(data.message || 'Error fetching domain information');
+    }
+
+    return data.data;
+};
 
 export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const start = url.searchParams.get('start') || '2023-01-01';
     const end = url.searchParams.get('end') || '2023-01-31';
-    const siteUrl = url.searchParams.get('siteUrl') || '';
+    const domainId = url.searchParams.get('domainId') || '';
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const sortByParam = url.searchParams.get('sortBy') || 'query';
@@ -25,9 +46,25 @@ export async function GET(req: NextRequest) {
     const validSortBy: GSCDataKey[] = ['query', 'clicks', 'impressions', 'ctr', 'position'];
     const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : 'query';
 
+    if (!domainId) {
+        return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 });
+    }
+
+    const token = req.cookies.get('token')?.value;
+
+    if (!token) {
+        return NextResponse.json({ error: 'Unauthorized: Token is missing' }, { status: 401 });
+    }
+
     try {
-        const response = await webmasters.searchanalytics.query({
-            siteUrl,
+        const domainInfo = await getDomainInfoById(domainId, token);
+        const keySearchConsole = domainInfo.key_search_console;
+        const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
+
+        const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
+
+        const response = await searchConsoleClient.searchanalytics.query({
+            siteUrl: domain,
             requestBody: {
                 startDate: start,
                 endDate: end,
@@ -61,7 +98,7 @@ export async function GET(req: NextRequest) {
         const paginatedData = data.slice(startIndex, startIndex + limit);
 
         return NextResponse.json({ data: paginatedData, total });
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
         return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC' }, { status: 500 });
     }

@@ -1,11 +1,12 @@
-// app/components/keyword/component-add-keyword.tsx
+// app/components/keyword/component-edit-keyword.tsx
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Select from 'react-select';
 import Cookies from 'js-cookie';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import logout from '@/utils/logout';
-import Select from 'react-select';
+import { useSearchParams } from 'next/navigation';
 
 const geolocationOptions = [
     { value: 'af', label: 'af' },
@@ -335,99 +336,149 @@ const hostLanguageOptions = [
     { value: 'zu', label: 'zu' },
 ];
 
-export default function ComponentAddKeyword() {
+export default function ComponentEditKeyword() {
     const router = useRouter();
     const token = Cookies.get('token');
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParams = useSearchParams();
+    const idGoogleSearchParam = searchParams.get('idGoogleSearch');
+    const idGoogleSearch = idGoogleSearchParam ? Number(idGoogleSearchParam) : NaN;
+    const idParam = searchParams.get('id');
+    const id = idParam ? Number(idParam) : NaN;
 
     const [keyword, setKeyword] = useState('');
     const [urlKeyword, setUrlKeyword] = useState('');
     const [geolocation, setGeolocation] = useState('vn');
     const [hostLanguage, setHostLanguage] = useState('vi');
-    const [domainId, setDomainId] = useState<number>(0);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!isNaN(idGoogleSearch) && idGoogleSearch > 0 && !isNaN(id) && id > 0) {
+            fetchKeyword();
+        } else {
+            ShowMessageError({ content: 'Không tìm thấy ID keyword' });
+        }
+    }, [idGoogleSearch, id]);
+
+    async function fetchKeyword() {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-infor-keyword-by-id?id=${id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const data = await res.json();
+            if (data.errorcode === 200) {
+                const row = data.data;
+                setKeyword(row.keyword);
+                setUrlKeyword(row.url_keyword);
+                setGeolocation(row.geolocation || 'vn');
+                setHostLanguage(row.host_language || 'vi');
+            } else if ([401, 403].includes(data.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout(router);
+            } else {
+                ShowMessageError({ content: data.message || 'Không thể tải thông tin keyword' });
+                router.push('/domain/keyword');
+            }
+        } catch {
+            ShowMessageError({ content: 'Lỗi khi tải dữ liệu' });
+            router.push('/domain/keyword');
+        } finally {
+            setLoading(false);
+        }
+    }
 
     async function handleSubmit() {
+        if (!keyword.trim() || !urlKeyword.trim()) {
+            ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
+            return;
+        }
+
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/insert-infor-keyword`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/update-infor-keyword`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    dataKeyword: [
-                        {
-                            keyword,
-                            urlKeyword,
-                            geolocation,
-                            hostLanguage,
-                        },
-                    ],
-                    domainId,
+                    id,
+                    keyword,
+                    urlKeyword,
                 }),
             });
             const result = await response.json();
 
             if (result.errorcode === 200) {
-                ShowMessageSuccess({ content: 'Thêm dữ liệu thành công' });
-                router.push('/google-search-api/keyword');
+                ShowMessageSuccess({ content: 'Cập nhật dữ liệu thành công' });
+                router.push(`/domain/keyword?idGoogleSearch=${urlParams.get('idGoogleSearch')}`);
             } else if ([401, 403].includes(result.errorcode)) {
                 ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
                 logout(router);
             } else {
-                ShowMessageError({ content: result.message || 'Lỗi khi thêm dữ liệu' });
+                ShowMessageError({ content: result.message || 'Lỗi khi cập nhật dữ liệu' });
             }
-        } catch (error) {
-            ShowMessageError({ content: 'Lỗi khi gọi API thêm dữ liệu' });
+        } catch {
+            ShowMessageError({ content: 'Lỗi khi gọi API cập nhật dữ liệu' });
         }
     }
 
+    if (loading) {
+        return <div className="p-4">Đang tải...</div>;
+    }
+
     return (
-        <div className="panel border-white-light px-0 dark:border-[#1b2e4b] p-4">
-            <div className="custom-select grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 px-4">
-                <div>
-                    <label className="block mb-1">Keyword</label>
-                    <input className="border p-2 rounded w-full form-input" placeholder="Nhập keyword..." value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+        <div className="panel border-white-light px-4 py-6 dark:border-[#1b2e4b] p-4 custom-select">
+            <h2 className="text-2xl font-semibold mb-6">Chỉnh sửa Keyword</h2>
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubmit();
+                }}
+            >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block mb-1 font-medium">
+                            Keyword <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" placeholder="Nhập keyword..." value={keyword} onChange={(e) => setKeyword(e.target.value)} className="w-full border p-2 rounded form-input" />
+                    </div>
+                    <div>
+                        <label className="block mb-1 font-medium">
+                            URL Keyword <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" placeholder="Nhập URL..." value={urlKeyword} onChange={(e) => setUrlKeyword(e.target.value)} className="w-full border p-2 rounded form-input" />
+                    </div>
+                    <div>
+                        <label className="block mb-1 font-medium">Geolocation</label>
+                        <Select
+                            options={geolocationOptions}
+                            value={geolocationOptions.find((op) => op.value === geolocation)}
+                            onChange={(val) => setGeolocation(val?.value || 'vn')}
+                            placeholder="Chọn geolocation..."
+                        />
+                    </div>
+                    <div>
+                        <label className="block mb-1 font-medium">Host Language</label>
+                        <Select
+                            options={hostLanguageOptions}
+                            value={hostLanguageOptions.find((op) => op.value === hostLanguage)}
+                            onChange={(val) => setHostLanguage(val?.value || 'vi')}
+                            placeholder="Chọn hostLanguage..."
+                        />
+                    </div>
                 </div>
-
-                <div>
-                    <label className="block mb-1">URL Keyword</label>
-                    <input className="border p-2 rounded w-full form-input" placeholder="Nhập URL..." value={urlKeyword} onChange={(e) => setUrlKeyword(e.target.value)} />
+                <div className="flex gap-2 justify-end mt-6">
+                    <button type="button" onClick={() => router.push(`/domain/keyword?idGoogleSearch=${urlParams.get('idGoogleSearch')}`)} className="btn btn-secondary">
+                        Hủy
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                        Lưu
+                    </button>
                 </div>
-
-                <div>
-                    <label className="block mb-1">Geolocation</label>
-                    <Select
-                        options={geolocationOptions}
-                        value={geolocationOptions.find((op) => op.value === geolocation)}
-                        onChange={(val) => setGeolocation(val?.value || 'vn')}
-                        placeholder="Chọn geolocation..."
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1">Host Language</label>
-                    <Select
-                        options={hostLanguageOptions}
-                        value={hostLanguageOptions.find((op) => op.value === hostLanguage)}
-                        onChange={(val) => setHostLanguage(val?.value || 'vi')}
-                        placeholder="Chọn hostLanguage..."
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1">Domain ID</label>
-                    <input type="number" className="border p-2 rounded w-full form-input" placeholder="Nhập domainId..." value={domainId} onChange={(e) => setDomainId(Number(e.target.value))} />
-                </div>
-            </div>
-
-            <div className="flex gap-2 justify-end mt-4 px-4">
-                <button onClick={() => router.push('/google-search-api/keyword')} className="btn btn-secondary">
-                    Hủy
-                </button>
-                <button onClick={handleSubmit} className="btn btn-primary">
-                    Lưu
-                </button>
-            </div>
+            </form>
         </div>
     );
 }

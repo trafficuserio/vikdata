@@ -1,12 +1,13 @@
+// lib/googleAnalytics.ts
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 
-const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON as string);
+export const createAnalyticsDataClient = (credentials: any) => {
+    const parsedCredentials = JSON.parse(credentials);
 
-const analyticsDataClient = new BetaAnalyticsDataClient({
-    credentials: {
-        client_email: credentials.client_email,
-        private_key: credentials.private_key,
-    },
-});
-
-export default analyticsDataClient;
+    return new BetaAnalyticsDataClient({
+        credentials: {
+            client_email: parsedCredentials.client_email,
+            private_key: parsedCredentials.private_key,
+        },
+    });
+};

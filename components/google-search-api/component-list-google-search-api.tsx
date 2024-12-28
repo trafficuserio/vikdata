@@ -8,7 +8,6 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrash from '@/components/icon/icon-trash';
 import IconRefresh from '@/components/icon/icon-refresh';
-import IconKeyword from '@/components/icon/icon-keyword';
 import Cookies from 'js-cookie';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import logout from '@/utils/logout';
@@ -23,6 +22,7 @@ const PAGE_SIZES = [5, 10, 20, 30, 50];
 
 export default function ComponentListGoogleSearchApi() {
     const token = Cookies.get('token');
+
 
     const [data, setData] = useState<GoogleSearchApiData[]>([]);
     const [page, setPage] = useState(1);
@@ -130,11 +130,9 @@ export default function ComponentListGoogleSearchApi() {
         }
     }
 
-    // Lọc và sắp xếp (search / sort)
     const filteredAndSortedData = useMemo(() => {
         let filtered = data.filter((item) => {
             const s = search.toLowerCase();
-            // Bảo vệ trường hợp item.apiKey / item.cx có thể là rỗng
             const apiKeyStr = item.apiKey?.toLowerCase() || '';
             const cxStr = item.cx?.toLowerCase() || '';
             return apiKeyStr.includes(s) || cxStr.includes(s);
@@ -176,8 +174,9 @@ export default function ComponentListGoogleSearchApi() {
             textAlignment: 'center',
             render: (record) => (
                 <div className="flex justify-center gap-4">
-                    <Link href={`/google-search-api/keyword?id=${record.id}`} className="text-primary hover:text-primary-dark">
-                        <IconKeyword />
+
+                    <Link href={`/google-search-api/edit?id=${record.id}`} className="text-info hover:text-primary-dark">
+                        <IconEdit />
                     </Link>
                     <button onClick={() => handleDeleteSingle(record.id)} className=" text-red-500 hover:text-red-700">
                         <IconTrash />
