@@ -509,21 +509,6 @@ export default function ComponentEditDomain() {
                             rows={6}
                         ></textarea>
                     </div>
-
-                    {/* Additional JSON Fields */}
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                        <label htmlFor="clientSecretAdsJSON" className="block mb-1 font-medium">
-                            Client Secret Ads (JSON) <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            id="clientSecretAdsJSON"
-                            placeholder="Nhập Client Secret Ads dưới dạng JSON"
-                            value={clientSecretAdsJSON}
-                            onChange={(e) => setClientSecretAdsJSON(e.target.value)}
-                            className="w-full border p-2 rounded form-textarea"
-                            rows={6}
-                        ></textarea>
-                    </div>
                 </div>
                 <div className="mt-6">
                     <label htmlFor="refreshTokenAds" className="block mb-1 font-medium">
