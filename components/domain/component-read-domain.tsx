@@ -286,7 +286,7 @@ const ComponentsStatistical = () => {
                         <ComponentReadDomainInfo />
                     </Tab.Panel>
                     <Tab.Panel>
-                        <ComponentReadDomainRankKey />
+                        <ComponentReadDomainRankKey startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />
