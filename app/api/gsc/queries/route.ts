@@ -13,7 +13,7 @@ const getDomainInfoById = async (domainId: string, token: string) => {
             Authorization: `Bearer ${token}`,
         },
     });
-
+    console.log('res', res);
     const data = await res.json();
 
     console.log('data', data);
