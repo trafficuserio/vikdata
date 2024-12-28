@@ -34,11 +34,17 @@ import IconMenuMore from '@/components/icon/menu/icon-menu-more';
 import { usePathname, useRouter } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import logout from '@/utils/logout';
+import Cookies from 'js-cookie';
 
 const Header = () => {
+    const router = useRouter();
+    const token = Cookies.get('token');
+    
+    if (!token) {
+        router.push('/auth/login');
+    }
     const pathname = usePathname();
     const dispatch = useDispatch();
-    const router = useRouter();
     const { t, i18n } = getTranslation();
 
     const handleLogout = () => {
