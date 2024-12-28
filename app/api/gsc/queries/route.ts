@@ -125,6 +125,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ data: paginatedData, total });
     } catch (err: any) {
         console.error(err);
-        return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC' + err }, { status: 500 });
+        return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC API' + err }, { status: 500 });
     }
 }

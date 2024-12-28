@@ -84,7 +84,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                 `/api/gsc/queries?start=${start}&end=${endFormatted}&domainId=${domainId}&limit=${limit}&page=${page}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}&dimensions=query`,
             );
             if (!response.ok) {
-                throw new Error('Lỗi khi lấy dữ liệu GSC');
+                throw new Error('Lỗi khi lấy dữ liệu GSC FETCH');
             }
             const result = await response.json();
             setGscData(result.data);
@@ -92,7 +92,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
             setErrorGSC(null);
         } catch (error: any) {
             console.error('Error fetching GSC data:', error);
-            setErrorGSC('Lỗi khi lấy dữ liệu GSC');
+            setErrorGSC('Lỗi khi lấy dữ liệu GSC UI');
         }
     };
 
