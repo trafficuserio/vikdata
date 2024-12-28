@@ -11,7 +11,7 @@ const IconAnalytics: FC<IconAnalyticsProps> = ({ className, fill = false }) => {
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 301112 333331"
-                shaperenderingg="geometricPrecision"
+                shapeRendering="geometricPrecision"
                 textRendering="geometricPrecision"
                 imageRendering="optimizeQuality"
                 fillRule="evenodd"
