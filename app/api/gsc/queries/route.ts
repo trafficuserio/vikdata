@@ -65,10 +65,9 @@ export async function GET(req: NextRequest) {
 
     try {
         const domainInfo = await getDomainInfoById(domainId, token);
-        let keySearchConsole = domainInfo.key_search_console;
+        const keySearchConsole = domainInfo.key_search_console;
         const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
-        console.log(keySearchConsole);
-        keySearchConsole = JSON.parse(keySearchConsole);
+
         const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
 
         const response = await searchConsoleClient.searchanalytics.query({
@@ -126,6 +125,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ data: paginatedData, total });
     } catch (err: any) {
         console.error(err);
-        return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC API' + err }, { status: 500 });
+        return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC' }, { status: 500 });
     }
 }
