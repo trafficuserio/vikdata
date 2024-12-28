@@ -58,46 +58,47 @@ export async function GET(req: NextRequest) {
 
     try {
         const domainInfo = await getDomainInfoById(domainId, token);
-        const keySearchConsole = domainInfo.key_search_console;
-        const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
+        // const keySearchConsole = domainInfo.key_search_console;
+        // // const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
+        // const domain = {};
 
-        const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
+        // // const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
 
-        const response = await searchConsoleClient.searchanalytics.query({
-            siteUrl: domain,
-            requestBody: {
-                startDate: start,
-                endDate: end,
-                dimensions: ['query'],
-                rowLimit: 5000,
-            },
-        });
+        // // const response = await searchConsoleClient.searchanalytics.query({
+        // //     siteUrl: domain,
+        // //     requestBody: {
+        // //         startDate: start,
+        // //         endDate: end,
+        // //         dimensions: ['query'],
+        // //         rowLimit: 5000,
+        // //     },
+        // // });
 
-        let rows = response.data.rows || [];
-        let data = rows.map((row) => ({
-            query: row.keys?.[0] || '',
-            clicks: row.clicks || 0,
-            impressions: row.impressions || 0,
-            ctr: row.ctr || 0,
-            position: row.position || 0,
-        }));
+        // let rows = response.data.rows || [];
+        // let data = rows.map((row) => ({
+        //     query: row.keys?.[0] || '',
+        //     clicks: row.clicks || 0,
+        //     impressions: row.impressions || 0,
+        //     ctr: row.ctr || 0,
+        //     position: row.position || 0,
+        // }));
 
-        if (search) {
-            const searchLower = search.toLowerCase();
-            data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
-        }
+        // if (search) {
+        //     const searchLower = search.toLowerCase();
+        //     data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
+        // }
 
-        data = data.sort((a, b) => {
-            if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
-            if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
-        });
+        // data = data.sort((a, b) => {
+        //     if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
+        //     if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
+        //     return 0;
+        // });
 
-        const total = data.length;
-        const startIndex = (page - 1) * limit;
-        const paginatedData = data.slice(startIndex, startIndex + limit);
+        // const total = data.length;
+        // const startIndex = (page - 1) * limit;
+        // const paginatedData = data.slice(startIndex, startIndex + limit);
 
-        return NextResponse.json({ data: paginatedData, total });
+        return NextResponse.json({ data: domainInfo });
     } catch (err: any) {
         console.error(err);
         return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC' }, { status: 500 });
