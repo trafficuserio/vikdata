@@ -58,7 +58,7 @@ const ComponentReadInfo = () => {
     }
 
     return (
-        <div className="mt-8 rounded-lg shadow-lg space-y-4">
+        <div className="mt-8 space-y-4">
             <h2 className="text-2xl font-semibold">Thông tin miền</h2>
             <ul className="space-y-3">
                 <li className="flex gap-2">
@@ -66,27 +66,31 @@ const ComponentReadInfo = () => {
                     <span className="text-base">{domainInfo.domain}</span>
                 </li>
                 <li className="flex gap-2">
-                    <strong className="font-medium text-base">Người dùng:</strong>
+                    <strong className="font-medium text-base">Người phụ trách:</strong>
                     <span className="text-base">{domainInfo.person}</span>
                 </li>
                 <li className="flex gap-2">
-                    <strong className="font-medium text-base">Loại trang web:</strong>
+                    <strong className="font-medium text-base">Loại site:</strong>
                     <span className="text-base">{domainInfo.type_site}</span>
                 </li>
                 <li className="flex gap-2">
-                    <strong className="font-medium text-base">Nhóm trang web:</strong>
+                    <strong className="font-medium text-base">Nhóm site:</strong>
                     <span className="text-base">{domainInfo.group_site}</span>
+                </li>
+                <li className="flex gap-2">
+                    <strong className="font-medium text-base">Tổng link:</strong>
+                    <span className="text-base">{domainInfo.total_link}</span>
                 </li>
                 <li className="flex gap-2">
                     <strong className="font-medium text-base">Trạng thái:</strong>
                     <span className={`text-base ${domainInfo.status ? 'text-green-600' : 'text-red-600'}`}>{domainInfo.status ? 'Hoạt động' : 'Không hoạt động'}</span>
                 </li>
                 <li className="flex gap-2">
-                    <strong className="font-medium text-base">Thời gian đăng ký:</strong>
+                    <strong className="font-medium text-base">Ngày Reg Domain:</strong>
                     <span className="text-base">{new Date(domainInfo.time_reg_domain).toLocaleDateString()}</span>
                 </li>
                 <li className="flex gap-2">
-                    <strong className="font-medium text-base">Thời gian cập nhật:</strong>
+                    <strong className="font-medium text-base">Ngày Index:</strong>
                     <span className="text-base">{new Date(domainInfo.time_index).toLocaleDateString()}</span>
                 </li>
                 <li className="flex gap-2">

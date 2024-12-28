@@ -14,6 +14,7 @@ import ComponentReadDomainAnalytics from '@/components/domain/component-read-dom
 import ComponentReadDomainGoogleSearchConsole from '@/components/domain/component-read-domain-google-search-console';
 import ComponentReadDomainAdsense from '@/components/domain/component-read-domain-adsense';
 import ComponentReadDomainInfo from '@/components/domain/component-read-domain-info';
+import ComponentReadDomainRankKey from '@/components/domain/component-read-domain-rank-key';
 import dayjs from 'dayjs';
 
 const shortcutsItems = [
@@ -178,6 +179,18 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
+                                    <IconInfo className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Xếp hạng từ khóa</p>
+                                </button>
+                            )}
+                        </Tab>
+                        <Tab as={Fragment}>
+                            {(tabProps) => (
+                                <button
+                                    className={`${
+                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
+                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
+                                >
                                     <IconGoogleSearchConsole className="h-5 w-5" />
                                     <p className="ml-2 hidden md:block">Search Console</p>
                                 </button>
@@ -271,6 +284,9 @@ const ComponentsStatistical = () => {
                 <Tab.Panels>
                     <Tab.Panel>
                         <ComponentReadDomainInfo />
+                    </Tab.Panel>
+                    <Tab.Panel>
+                        <ComponentReadDomainRankKey />
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />

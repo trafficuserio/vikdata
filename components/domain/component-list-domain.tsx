@@ -251,7 +251,11 @@ export default function ComponentListDomain() {
             title: 'Tên miền',
             sortable: true,
             textAlignment: 'left',
-            render: ({ domain }) => <p>{domain}</p>,
+            render: ({ domain, id }) => (
+                <Link href={`/domain/read?id=${id}`} className="text-blue-500 hover:text-blue-700">
+                    {domain}
+                </Link>
+            ),
         },
         {
             accessor: 'typeSite',
@@ -315,9 +319,9 @@ export default function ComponentListDomain() {
             textAlignment: 'center',
             render: (item) => (
                 <div className="flex justify-center gap-4">
-                    <Link href={`/domain/read?id=${item.id}`} className="text-blue-500 hover:text-blue-700">
+                    {/* <Link href={`/domain/read?id=${item.id}`} className="text-blue-500 hover:text-blue-700">
                         <IconEye />
-                    </Link>
+                    </Link> */}
                     <Link href={`/domain/edit?id=${item.id}`} className="text-yellow-500 hover:text-yellow-700">
                         <IconEdit />
                     </Link>
