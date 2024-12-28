@@ -40,7 +40,6 @@ export default function ComponentAddDomain() {
     const [person, setPerson] = useState('');
     const [propertyId, setPropertyId] = useState('');
     const [keyWordpress, setKeyWordpress] = useState('');
-    const [clientIdAds, setClientIdAds] = useState('');
     const [accountIdAds, setAccountIdAds] = useState('');
     const [status, setStatus] = useState(false);
     const [totalLink, setTotalLink] = useState(0);
@@ -102,7 +101,6 @@ export default function ComponentAddDomain() {
                     description,
                     refreshTokenAds,
                     clientSecretAds,
-                    clientIdAds,
                     accountIdAds,
                 },
             ],
@@ -222,19 +220,7 @@ export default function ComponentAddDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="clientIdAds" className="block mb-1 font-medium">
-                            Client ID Ads <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            id="clientIdAds"
-                            type="text"
-                            placeholder="Nhập Client ID Ads..."
-                            value={clientIdAds}
-                            onChange={(e) => setClientIdAds(e.target.value)}
-                            className="w-full border p-2 rounded form-input"
-                        />
-                    </div>
+
                     <div>
                         <label htmlFor="accountIdAds" className="block mb-1 font-medium">
                             Account ID Ads <span className="text-red-500">*</span>

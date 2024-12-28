@@ -88,7 +88,6 @@ interface DomainData {
     fileKeyword: string;
     description?: string | null;
     refreshTokenAds: string;
-    clientIdAds: string;
     clientSecretAds: ClientSecretAds;
     accountIdAds: string;
 }
@@ -106,7 +105,6 @@ export default function ComponentEditDomain() {
     const [person, setPerson] = useState('');
     const [propertyId, setPropertyId] = useState('');
     const [keyWordpress, setKeyWordpress] = useState('');
-    const [clientIdAds, setClientIdAds] = useState('');
     const [accountIdAds, setAccountIdAds] = useState('');
     const [status, setStatus] = useState(false);
     const [totalLink, setTotalLink] = useState(0);
@@ -159,7 +157,6 @@ export default function ComponentEditDomain() {
                         keySearchConsole: JSON.parse(data.data.key_search_console),
                         keyWordpress: data.data.key_wordpress,
                         refreshTokenAds: data.data.refresh_token_ads,
-                        clientIdAds: data.data.client_id_ads || '',
                         clientSecretAds: JSON.parse(data.data.client_secret_ads),
                         accountIdAds: data.data.account_id_ads || '',
                         status: data.data.status,
@@ -176,7 +173,6 @@ export default function ComponentEditDomain() {
                     setPerson(item.person);
                     setPropertyId(item.propertyId);
                     setKeyWordpress(item.keyWordpress);
-                    setClientIdAds(item.clientIdAds);
                     setAccountIdAds(item.accountIdAds);
                     setStatus(item.status);
                     setTotalLink(item.totalLink);
@@ -245,7 +241,6 @@ export default function ComponentEditDomain() {
             keySearchConsole,
             keyWordpress,
             refreshTokenAds,
-            clientIdAds,
             clientSecretAds,
             accountIdAds,
             status,
@@ -384,19 +379,6 @@ export default function ComponentEditDomain() {
                         />
                     </div>
 
-                    <div>
-                        <label htmlFor="clientIdAds" className="block mb-1 font-medium">
-                            Client ID Ads <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            id="clientIdAds"
-                            type="text"
-                            placeholder="Nhập Client ID Ads..."
-                            value={clientIdAds}
-                            onChange={(e) => setClientIdAds(e.target.value)}
-                            className="w-full border p-2 rounded form-input"
-                        />
-                    </div>
                     <div>
                         <label htmlFor="accountIdAds" className="block mb-1 font-medium">
                             Account ID Ads <span className="text-red-500">*</span>
