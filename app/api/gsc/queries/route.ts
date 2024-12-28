@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const domainInfo = await getDomainInfoById(domainId, token);
+        // const domainInfo = await getDomainInfoById(domainId, token);
         // const keySearchConsole = domainInfo.key_search_console;
         // // const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
         // const domain = {};
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
         // const startIndex = (page - 1) * limit;
         // const paginatedData = data.slice(startIndex, startIndex + limit);
 
-        return NextResponse.json({ data: domainInfo });
+        return "tesst";
     } catch (err: any) {
         console.error(err);
         return NextResponse.json({ error: 'Lỗi khi lấy dữ liệu GSC' }, { status: 500 });
