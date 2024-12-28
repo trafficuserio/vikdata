@@ -112,7 +112,7 @@ const Sidebar = () => {
                                     </div>
                                 </Link>
                             </li>
-                            {role === 'root' && (
+                            {role === 'admin' && (
                                 <li className="menu nav-item">
                                     <Link href="/admin" className="nav-link group">
                                         <div className="flex items-center">
