@@ -34,17 +34,24 @@ export async function GET(req: NextRequest) {
     const sortByParam = url.searchParams.get('sortBy') || 'query';
     const sortOrder = url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc';
     const search = url.searchParams.get('search') || '';
+    const dimensionsParam = url.searchParams.get('dimensions') || 'query';
 
     type GSCDataKey = keyof {
         query: string;
+        date: string;
         clicks: number;
         impressions: number;
         ctr: number;
         position: number;
     };
 
-    const validSortBy: GSCDataKey[] = ['query', 'clicks', 'impressions', 'ctr', 'position'];
-    const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : 'query';
+    const validDimensions: GSCDataKey[] = ['query', 'date'];
+    const dimensions: string[] = validDimensions.includes(dimensionsParam as GSCDataKey) ? [dimensionsParam] : ['query']; // Default to 'query' if invalid
+
+    // Update sortBy validation based on dimensions
+    const validSortBy: GSCDataKey[] = dimensions.includes('date') ? ['date', 'clicks', 'impressions', 'ctr', 'position'] : ['query', 'clicks', 'impressions', 'ctr', 'position'];
+
+    const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : dimensions.includes('date') ? 'date' : 'query';
 
     if (!domainId) {
         return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 });
@@ -68,25 +75,43 @@ export async function GET(req: NextRequest) {
             requestBody: {
                 startDate: start,
                 endDate: end,
-                dimensions: ['query'],
+                dimensions: dimensions, // Use dynamic dimensions
                 rowLimit: 5000,
             },
         });
 
         let rows = response.data.rows || [];
-        let data = rows.map((row) => ({
-            query: row.keys?.[0] || '',
-            clicks: row.clicks || 0,
-            impressions: row.impressions || 0,
-            ctr: row.ctr || 0,
-            position: row.position || 0,
-        }));
+        let data: any[] = [];
 
-        if (search) {
-            const searchLower = search.toLowerCase();
-            data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
+        if (dimensions.includes('date')) {
+            data = rows.map((row) => ({
+                date: row.keys?.[0] || '',
+                clicks: row.clicks || 0,
+                impressions: row.impressions || 0,
+                ctr: row.ctr || 0,
+                position: row.position || 0,
+            }));
+        } else {
+            data = rows.map((row) => ({
+                query: row.keys?.[0] || '',
+                clicks: row.clicks || 0,
+                impressions: row.impressions || 0,
+                ctr: row.ctr || 0,
+                position: row.position || 0,
+            }));
         }
 
+        // Apply search filter if necessary
+        if (search) {
+            const searchLower = search.toLowerCase();
+            if (dimensions.includes('date')) {
+                data = data.filter((item) => item.date.toLowerCase().includes(searchLower));
+            } else {
+                data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
+            }
+        }
+
+        // Sorting
         data = data.sort((a, b) => {
             if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
             if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
