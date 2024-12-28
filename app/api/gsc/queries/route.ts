@@ -14,12 +14,9 @@ const getDomainInfoById = async (domainId: string, token: string) => {
         },
     });
 
-    if (!res.ok) {
-        console.log(JSON.stringify(res));
-        throw new Error('Failed to fetch domain information');
-    }
-
     const data = await res.json();
+
+    console.log('data', data);
 
     if (data.errorcode !== 200) {
         throw new Error(data.message || 'Error fetching domain information');
