@@ -116,6 +116,13 @@ interface DomainInforWebsiteWordpress {
     day: string;
 }
 
+interface InforWebDataGoogleAdsense {
+    total_click: number;
+    total_view: number;
+    total_cpc: number;
+    day: string;
+}
+
 interface DomainData {
     id: number;
     domain: string;
@@ -140,6 +147,7 @@ interface DomainData {
     domainGoogleConsoles: DomainGoogleConsole[];
     domainGoogleAnalytics: DomainGoogleAnalytics[];
     domainInforWebsiteWordpresses: DomainInforWebsiteWordpress[];
+    inforWeb_dataGoogleAdsenses: InforWebDataGoogleAdsense[];
     totalPostPublish: number;
     totalPost: number;
     totalPagePublish: number;
@@ -263,6 +271,7 @@ export default function ComponentListDomain() {
                         domainGoogleConsoles: item.domain_googleConsoles || [],
                         domainGoogleAnalytics: item.domain_googleAnalytics || [],
                         domainInforWebsiteWordpresses: item.domain_inforWebsiteWordpresses || [],
+                        inforWeb_dataGoogleAdsenses: item.inforWeb_dataGoogleAdsenses || [],
                         totalPostPublish: totalPostPublish || 0,
                         totalPost: totalPost || 0,
                         totalPagePublish: totalPagePublish || 0,
@@ -470,7 +479,7 @@ export default function ComponentListDomain() {
             title: 'Tổng bài nháp',
             sortable: true,
             textAlignment: 'left',
-            render: ({ totalPost, totalPostPublish }) => (totalPost - totalPostPublish).toLocaleString(),
+            render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
         },
         {
             accessor: 'totalPagePublish',
@@ -542,6 +551,56 @@ export default function ComponentListDomain() {
             sortable: true,
             textAlignment: 'left',
             render: ({ traffic_ahrerf }) => traffic_ahrerf.toLocaleString(),
+        },
+        {
+            accessor: 'total_click',
+            title: 'Tổng Click',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ inforWeb_dataGoogleAdsenses }) => {
+                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+                    return inforWeb_dataGoogleAdsenses[0].total_click.toLocaleString();
+                }
+                return '0';
+            },
+        },
+        {
+            accessor: 'total_view',
+            title: 'Tổng View',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ inforWeb_dataGoogleAdsenses }) => {
+                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+                    return inforWeb_dataGoogleAdsenses[0].total_view.toLocaleString();
+                }
+                return '0';
+            },
+        },
+        {
+            accessor: 'total_cpc',
+            title: 'Tổng CPC',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ inforWeb_dataGoogleAdsenses }) => {
+                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+                    return inforWeb_dataGoogleAdsenses[0].total_cpc.toLocaleString();
+                }
+                return '0';
+            },
+        },
+        {
+            accessor: 'ctr',
+            title: 'CTR (%)',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ inforWeb_dataGoogleAdsenses }) => {
+                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+                    const { total_click, total_view } = inforWeb_dataGoogleAdsenses[0];
+                    const ctr = total_view > 0 ? ((total_click / total_view) * 100).toFixed(2) : '0.00';
+                    return `${ctr}%`;
+                }
+                return '0.00%';
+            },
         },
         {
             accessor: 'action',
