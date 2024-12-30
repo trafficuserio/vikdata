@@ -55,7 +55,7 @@ export default function ComponentAddDomain() {
     const [refreshTokenAds, setRefreshTokenAds] = useState('');
 
     async function handleSubmit() {
-        if (!domain.trim() || !typeSite.trim() || !groupSite.trim() || !person.trim() || !propertyId.trim() || !keyWordpress.trim() || !fileKeyword.trim() || !refreshTokenAds.trim()) {
+        if (!domain.trim() || !typeSite.trim() || !groupSite.trim() || !person.trim() || !propertyId.trim() || !keyWordpress.trim() || !fileKeyword.trim()) {
             ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
             return;
         }
@@ -100,7 +100,7 @@ export default function ComponentAddDomain() {
                     fileKeyword,
                     description,
                     refreshTokenAds,
-                    clientSecretAds,
+                    clientSecretAds: clientSecretAds || {},
                     accountIdAds,
                 },
             ],

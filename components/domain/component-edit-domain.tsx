@@ -203,7 +203,7 @@ export default function ComponentEditDomain() {
     async function handleSubmit() {
         if (submitting) return;
 
-        if (!domain.trim() || !typeSite.trim() || !groupSite.trim() || !person.trim() || !propertyId.trim() || !keyWordpress.trim() || !fileKeyword.trim() || !refreshTokenAds.trim()) {
+        if (!domain.trim() || !typeSite.trim() || !groupSite.trim() || !person.trim() || !propertyId.trim() || !keyWordpress.trim() || !fileKeyword.trim()) {
             ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
             return;
         }
@@ -241,7 +241,7 @@ export default function ComponentEditDomain() {
             keySearchConsole,
             keyWordpress,
             refreshTokenAds,
-            clientSecretAds,
+            clientSecretAds: clientSecretAds || {},
             accountIdAds,
             status,
             totalLink,
