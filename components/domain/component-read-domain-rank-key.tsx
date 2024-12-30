@@ -6,6 +6,7 @@ import { DataTable, DataTableColumn } from 'mantine-datatable';
 import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
 import { useSearchParams } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 interface RankKeyData {
     id: number;
@@ -35,6 +36,7 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const token = Cookies.get('token');
 
     const [rankKeyData, setRankKeyData] = useState<RankKeyData[]>([]);
     const [total, setTotal] = useState<number>(0);
@@ -59,18 +61,23 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
         setError(null);
 
         try {
-            const response = await fetch('/api/manage-keyword/get-data-rank-keyword-by-domain-id', {
-                method: 'POST',
+            // Xây dựng URL với các tham số truy vấn
+            const params = new URLSearchParams({
+                domainId: domainId.toString(),
+                startTime: dayjs(startDate).format('YYYY-MM-DD'),
+                endTime: dayjs(endDate).format('YYYY-MM-DD'),
+                page: page.toString(),
+                limit: limit.toString(),
+            });
+
+            const url = `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-data-rank-keyword-by-domain-id?${params.toString()}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    domainId: domainId,
-                    startTime: dayjs(startDate).format('YYYY-MM-DD'),
-                    endTime: dayjs(endDate).format('YYYY-MM-DD'),
-                    page: page,
-                    limit: limit,
-                }),
             });
 
             if (!response.ok) {
@@ -85,13 +92,11 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
 
             let data = result.data.rows;
 
-            // Apply search filtering if search term is provided
             if (search.trim() !== '') {
                 const searchLower = search.toLowerCase();
                 data = data.filter((item) => item.keyword.toLowerCase().includes(searchLower));
             }
 
-            // Apply sorting
             data.sort((a, b) => {
                 const aValue = a[sortBy];
                 const bValue = b[sortBy];
@@ -154,51 +159,51 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
 
             {error && <div className="text-red-500 mt-4">{error}</div>}
 
-            {!isLoading && !error && (
-                <>
-                    {/* Header with Title and Search */}
-                    <div className="mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <h5 className="text-lg font-semibold dark:text-white">Google Rank Keyword - Chi tiết từ khóa</h5>
+            <div className="panel mt-4 border-white-light px-0 dark:border-[#1b2e4b]">
+                {!isLoading && !error && (
+                    <>
+                        <div className="mb-4 flex flex-col md:flex-row items-center justify-between gap-4 px-4">
+                            <h5 className="text-lg font-semibold dark:text-white">Google Rank Keyword - Chi tiết từ khóa</h5>
 
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(1);
-                            }}
-                            placeholder="Tìm kiếm từ khóa..."
-                            className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
-                        />
-                    </div>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
+                                placeholder="Tìm kiếm từ khóa..."
+                                className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
+                            />
+                        </div>
 
-                    {/* Data Table */}
-                    <div className="datatables pagination-padding overflow-auto h-[70dvh]">
-                        <DataTable
-                            className="table-hover whitespace-nowrap"
-                            records={rankKeyData}
-                            columns={columns}
-                            totalRecords={total}
-                            recordsPerPage={limit}
-                            page={page}
-                            onPageChange={setPage}
-                            recordsPerPageOptions={[10, 20, 30, 50, 100]}
-                            onRecordsPerPageChange={(size) => {
-                                setLimit(size);
-                                setPage(1);
-                            }}
-                            sortStatus={{ columnAccessor: sortBy, direction: sortOrder }}
-                            onSortStatusChange={({ columnAccessor, direction }) => {
-                                setSortBy(columnAccessor as keyof RankKeyData);
-                                setSortOrder(direction as 'asc' | 'desc');
-                                setPage(1);
-                            }}
-                            paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
-                            highlightOnHover
-                        />
-                    </div>
-                </>
-            )}
+                        <div className="datatables pagination-padding overflow-auto">
+                            <DataTable
+                                className="table-hover whitespace-nowrap"
+                                records={rankKeyData}
+                                columns={columns}
+                                totalRecords={total}
+                                recordsPerPage={limit}
+                                page={page}
+                                onPageChange={setPage}
+                                recordsPerPageOptions={[10, 20, 30, 50, 100]}
+                                onRecordsPerPageChange={(size) => {
+                                    setLimit(size);
+                                    setPage(1);
+                                }}
+                                sortStatus={{ columnAccessor: sortBy, direction: sortOrder }}
+                                onSortStatusChange={({ columnAccessor, direction }) => {
+                                    setSortBy(columnAccessor as keyof RankKeyData);
+                                    setSortOrder(direction as 'asc' | 'desc');
+                                    setPage(1);
+                                }}
+                                paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
+                                highlightOnHover
+                            />
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 };

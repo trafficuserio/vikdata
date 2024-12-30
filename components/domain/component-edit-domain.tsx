@@ -244,7 +244,7 @@ export default function ComponentEditDomain() {
             clientSecretAds,
             accountIdAds,
             status,
-            totalLink: Number(totalLink),
+            totalLink,
             timeIndex,
             timeRegDomain,
             fileKeyword,

@@ -312,7 +312,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                             className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
                         />
                     </div>
-                    <div className="datatables pagination-padding overflow-auto h-[70dvh]">
+                    <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
                         <DataTable
                             className="table-hover whitespace-nowrap"
                             records={gscData}

@@ -1,6 +1,5 @@
 'use client';
 import { Tab } from '@headlessui/react';
-import { getTranslation } from '@/i18n';
 import React, { useEffect, useState, Fragment, useRef } from 'react';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
@@ -49,8 +48,6 @@ const shortcutsItems = [
 ];
 
 const ComponentsStatistical = () => {
-    const { t } = getTranslation();
-
     const [startDate, setStartDate] = useState<Date | null>(() => dayjs().subtract(7, 'day').toDate());
     const [endDate, setEndDate] = useState<Date | null>(new Date());
     const [tempStartDate, setTempStartDate] = useState<Date | null>(null);

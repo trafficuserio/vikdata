@@ -1,7 +1,7 @@
 // app/components/domain/component-list-domain.tsx
 
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { sortBy as lodashSortBy } from 'lodash';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
@@ -15,6 +15,43 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconTrash from '@/components/icon/icon-trash';
 import IconRefresh from '@/components/icon/icon-refresh';
 import IconKeyword from '@/components/icon/icon-keyword';
+import IconCalendar from '@/components/icon/icon-calendar';
+
+import Select from 'react-select';
+import Flatpickr from 'react-flatpickr';
+import 'flatpickr/dist/flatpickr.css';
+import dayjs from 'dayjs';
+
+const shortcutsItems = [
+    {
+        label: '7 ngày trước',
+        getValue: () => {
+            const today = dayjs();
+            return [today.subtract(7, 'day').startOf('day').toDate(), today.endOf('day').toDate()];
+        },
+    },
+    {
+        label: '14 ngày trước',
+        getValue: () => {
+            const today = dayjs();
+            return [today.subtract(14, 'day').startOf('day').toDate(), today.endOf('day').toDate()];
+        },
+    },
+    {
+        label: '30 ngày trước',
+        getValue: () => {
+            const today = dayjs();
+            return [today.subtract(30, 'day').startOf('day').toDate(), today.endOf('day').toDate()];
+        },
+    },
+    {
+        label: '60 ngày trước',
+        getValue: () => {
+            const today = dayjs();
+            return [today.subtract(60, 'day').startOf('day').toDate(), today.endOf('day').toDate()];
+        },
+    },
+];
 
 interface KeyAnalytics {
     type: string;
@@ -56,6 +93,29 @@ interface ClientSecretAds {
     };
 }
 
+interface DomainGoogleConsole {
+    user_id: string;
+    traffic_day: number;
+    total_impressions_day: number;
+    total_index: number;
+    day: string;
+}
+
+interface DomainGoogleAnalytics {
+    user_id: string;
+    traffic_day: number;
+    day: string;
+}
+
+interface DomainInforWebsiteWordpress {
+    user_id: string;
+    total_post_publish: number;
+    total_post: number;
+    total_page_publish: number;
+    total_page: number;
+    day: string;
+}
+
 interface DomainData {
     id: number;
     domain: string;
@@ -77,9 +137,41 @@ interface DomainData {
     clientIdAds: string;
     clientSecretAds: ClientSecretAds;
     accountIdAds: string;
+    domainGoogleConsoles: DomainGoogleConsole[];
+    domainGoogleAnalytics: DomainGoogleAnalytics[];
+    domainInforWebsiteWordpresses: DomainInforWebsiteWordpress[];
+    totalPostPublish: number;
+    totalPost: number;
+    totalPagePublish: number;
+    totalPage: number;
 }
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
+
+const typeSiteOptions = [
+    { value: 'Tất cả', label: 'Tất cả' },
+    { value: 'New', label: 'New' },
+    { value: 'PBN - INET', label: 'PBN - INET' },
+    { value: 'PBN - Global', label: 'PBN - Global' },
+];
+
+const groupSiteOptions = [
+    { value: 'Tất cả', label: 'Tất cả' },
+    { value: 'Hình Ảnh', label: 'Hình Ảnh' },
+    { value: 'Hướng dẫn', label: 'Hướng dẫn' },
+    { value: 'Tổng hợp', label: 'Tổng hợp' },
+    { value: 'Học thuật', label: 'Học thuật' },
+    { value: 'Toplist', label: 'Toplist' },
+    { value: 'Bán hàng', label: 'Bán hàng' },
+];
+
+const personOptions = [
+    { value: 'Tất cả', label: 'Tất cả' },
+    { value: 'Dương', label: 'Dương' },
+    { value: 'Linh', label: 'Linh' },
+    { value: 'Nguyên', label: 'Nguyên' },
+    { value: 'Khác', label: 'Khác' },
+];
 
 export default function ComponentListDomain() {
     const [domains, setDomains] = useState<DomainData[]>([]);
@@ -96,9 +188,20 @@ export default function ComponentListDomain() {
     const [selectedRecords, setSelectedRecords] = useState<DomainData[]>([]);
     const token = Cookies.get('token');
 
+    const [typeSite, setTypeSite] = useState('Tất cả');
+    const [groupSite, setGroupSite] = useState('Tất cả');
+    const [person, setPerson] = useState('Tất cả');
+
+    const [startDate, setStartDate] = useState<Date | null>(() => dayjs().subtract(7, 'day').startOf('day').toDate());
+    const [endDate, setEndDate] = useState<Date | null>(() => dayjs().endOf('day').toDate());
+    const [tempStartDate, setTempStartDate] = useState<Date | null>(null);
+    const [tempEndDate, setTempEndDate] = useState<Date | null>(null);
+    const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+
+    const datePickerRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function fetchData() {
@@ -123,28 +226,53 @@ export default function ComponentListDomain() {
 
             if (data.errorcode === 200) {
                 const rows = data.data.rows || [];
-                const mapped: DomainData[] = rows.map((item: any) => ({
-                    id: item.id,
-                    domain: item.domain,
-                    typeSite: item.type_site,
-                    groupSite: item.group_site,
-                    person: item.person,
-                    keyAnalytics: item.key_analytics,
-                    propertyId: item.property_id,
-                    keySearchConsole: item.key_search_console,
-                    keyWordpress: item.key_wordpress,
-                    keyAdsense: item.key_adsense,
-                    status: item.status,
-                    totalLink: item.total_link ? Number(item.total_link) : 0,
-                    timeIndex: item.time_index,
-                    timeRegDomain: item.time_reg_domain,
-                    fileKeyword: item.file_key_word || '',
-                    description: item.description || '',
-                    refreshTokenAds: item.refresh_token_ads,
-                    clientIdAds: item.client_id_ads,
-                    clientSecretAds: item.client_secret_ads,
-                    accountIdAds: item.account_id_ads,
-                }));
+                const mapped: DomainData[] = rows.map((item: any) => {
+                    let totalPostPublish = 0;
+                    let totalPost = 0;
+                    let totalPagePublish = 0;
+                    let totalPage = 0;
+
+                    if (item.domain_inforWebsiteWordpresses && item.domain_inforWebsiteWordpresses.length > 0) {
+                        const sortedWordpress = item.domain_inforWebsiteWordpresses.sort(
+                            (a: DomainInforWebsiteWordpress, b: DomainInforWebsiteWordpress) => new Date(b.day).getTime() - new Date(a.day).getTime(),
+                        );
+                        const latestWordpress = sortedWordpress[0];
+                        totalPostPublish = latestWordpress.total_post_publish;
+                        totalPost = latestWordpress.total_post;
+                        totalPagePublish = latestWordpress.total_page_publish;
+                        totalPage = latestWordpress.total_page;
+                    }
+
+                    return {
+                        id: item.id,
+                        domain: item.domain,
+                        typeSite: item.type_site,
+                        groupSite: item.group_site,
+                        person: item.person,
+                        keyAnalytics: JSON.parse(item.key_analytics),
+                        propertyId: item.property_id,
+                        keySearchConsole: JSON.parse(item.key_search_console),
+                        keyWordpress: item.key_wordpress,
+                        keyAdsense: item.client_secret_ads,
+                        status: item.status,
+                        totalLink: item.total_link ? Number(item.total_link) : 0,
+                        timeIndex: item.time_index,
+                        timeRegDomain: item.time_reg_domain,
+                        fileKeyword: item.file_key_word || '',
+                        description: item.description || '',
+                        refreshTokenAds: item.refresh_token_ads,
+                        clientIdAds: item.client_id_ads,
+                        clientSecretAds: JSON.parse(item.client_secret_ads),
+                        accountIdAds: item.account_id_ads,
+                        domainGoogleConsoles: item.domain_googleConsoles || [],
+                        domainGoogleAnalytics: item.domain_googleAnalytics || [],
+                        domainInforWebsiteWordpresses: item.domain_inforWebsiteWordpresses || [],
+                        totalPostPublish: totalPostPublish,
+                        totalPost: totalPost,
+                        totalPagePublish: totalPagePublish,
+                        totalPage: totalPage,
+                    };
+                });
                 setDomains(mapped);
             } else {
                 ShowMessageError({ content: data.message || 'Không thể tải danh sách tên miền' });
@@ -158,13 +286,20 @@ export default function ComponentListDomain() {
     const filteredAndSortedRecords = useMemo(() => {
         let filtered = domains.filter((item) => {
             const s = search.toLowerCase();
-            return (
+            const matchesSearch =
                 item.domain.toLowerCase().includes(s) ||
                 item.typeSite.toLowerCase().includes(s) ||
                 item.groupSite.toLowerCase().includes(s) ||
                 item.person.toLowerCase().includes(s) ||
-                (item.description || '').toLowerCase().includes(s)
-            );
+                (item.description || '').toLowerCase().includes(s);
+
+            const matchesTypeSite = typeSite === 'Tất cả' || item.typeSite === typeSite;
+            const matchesGroupSite = groupSite === 'Tất cả' || item.groupSite === groupSite;
+            const matchesPerson = person === 'Tất cả' || item.person === person;
+
+            const withinDateRange = !startDate || !endDate || (item.timeIndex && new Date(item.timeIndex) >= startDate && new Date(item.timeIndex) <= endDate);
+
+            return matchesSearch && matchesTypeSite && matchesGroupSite && matchesPerson && withinDateRange;
         });
         if (sortStatus.columnAccessor) {
             filtered = lodashSortBy(filtered, sortStatus.columnAccessor);
@@ -173,7 +308,7 @@ export default function ComponentListDomain() {
             }
         }
         return filtered;
-    }, [domains, search, sortStatus]);
+    }, [domains, search, sortStatus, typeSite, groupSite, person, startDate, endDate]);
 
     const paginatedRecords = useMemo(() => {
         const from = (page - 1) * pageSize;
@@ -270,6 +405,12 @@ export default function ComponentListDomain() {
             textAlignment: 'left',
         },
         {
+            accessor: 'person',
+            title: 'Người phụ trách',
+            sortable: true,
+            textAlignment: 'left',
+        },
+        {
             accessor: 'status',
             title: 'Trạng thái',
             sortable: true,
@@ -307,10 +448,88 @@ export default function ComponentListDomain() {
             sortable: true,
             textAlignment: 'left',
             render: ({ fileKeyword }) => (
-                <a href={fileKeyword} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700">
-                    Link
+                <a href={fileKeyword} target="_blank" rel="noreferrer" className="block text-blue-500 hover:text-blue-700 max-w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start">
+                    {fileKeyword}
                 </a>
             ),
+        },
+        {
+            accessor: 'totalPostPublish',
+            title: 'Tổng bài viết đã xuất bản',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPostPublish }) => totalPostPublish.toLocaleString(),
+        },
+        {
+            accessor: 'totalPost',
+            title: 'Tổng bài viết',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPost }) => totalPost.toLocaleString(),
+        },
+        {
+            accessor: 'totalPage',
+            title: 'Tổng bài nháp',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPost, totalPostPublish }) => (totalPost - totalPostPublish).toLocaleString(),
+        },
+        {
+            accessor: 'totalPagePublish',
+            title: 'Tổng trang đã xuất bản',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPagePublish }) => totalPagePublish.toLocaleString(),
+        },
+        {
+            accessor: 'totalPage',
+            title: 'Tổng trang',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPage }) => totalPage.toLocaleString(),
+        },
+        {
+            accessor: 'totalPage',
+            title: 'Tổng trang nháp',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
+        },
+        {
+            accessor: 'traffic_day',
+            title: 'Traffic ngày Analytics',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ domainGoogleAnalytics }) => {
+                if (domainGoogleAnalytics && domainGoogleAnalytics.length > 0) {
+                    return domainGoogleAnalytics[0].traffic_day.toLocaleString();
+                }
+                return '0';
+            },
+        },
+        {
+            accessor: 'traffic_day_gsc',
+            title: 'Traffic ngày GSC',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ domainGoogleConsoles }) => {
+                if (domainGoogleConsoles && domainGoogleConsoles.length > 0) {
+                    return domainGoogleConsoles[0].traffic_day.toLocaleString();
+                }
+                return '0';
+            },
+        },
+        {
+            accessor: 'total_impressions_day',
+            title: 'Lượt hiển thị',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ domainGoogleConsoles }) => {
+                if (domainGoogleConsoles && domainGoogleConsoles.length > 0) {
+                    return domainGoogleConsoles[0].total_impressions_day.toLocaleString();
+                }
+                return '0';
+            },
         },
         {
             accessor: 'action',
@@ -319,9 +538,6 @@ export default function ComponentListDomain() {
             textAlignment: 'center',
             render: (item) => (
                 <div className="flex justify-center gap-4">
-                    {/* <Link href={`/domain/read?id=${item.id}`} className="text-blue-500 hover:text-blue-700">
-                        <IconEye />
-                    </Link> */}
                     <Link href={`/domain/edit?id=${item.id}`} className="text-yellow-500 hover:text-yellow-700">
                         <IconEdit />
                     </Link>
@@ -336,17 +552,108 @@ export default function ComponentListDomain() {
         },
     ];
 
-    /**
-     * Function to determine if the `timeRegDomain` is older than 11 months from today.
-     * @param timeRegDomain - The registration date of the domain.
-     * @returns A boolean indicating whether the domain is expired.
-     */
     const isDomainExpired = (timeRegDomain: string | null): boolean => {
-        if (!timeRegDomain) return false; // If no date provided, do not highlight
+        if (!timeRegDomain) return false;
         const regDate = new Date(timeRegDomain);
         const today = new Date();
         const elevenMonthsAgo = new Date(today.setMonth(today.getMonth() - 11));
         return regDate < elevenMonthsAgo;
+    };
+
+    const handleStartDateChange = (selectedDates: Date[]) => {
+        const date = selectedDates[0] || null;
+        setTempStartDate(date);
+    };
+
+    const handleEndDateChange = (selectedDates: Date[]) => {
+        const date = selectedDates[0] || null;
+        setTempEndDate(date);
+    };
+
+    const toggleDatePicker = () => {
+        setIsDatePickerVisible((prev) => !prev);
+        if (!isDatePickerVisible) {
+            setTempStartDate(startDate);
+            setTempEndDate(endDate);
+        }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+        if (datePickerRef.current) {
+            const flatpickrCalendars = document.querySelectorAll('.flatpickr-calendar');
+            let clickInside = datePickerRef.current.contains(event.target as Node);
+            flatpickrCalendars.forEach((calendar) => {
+                if (calendar.contains(event.target as Node)) {
+                    clickInside = true;
+                }
+            });
+            if (!clickInside) {
+                setIsDatePickerVisible(false);
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (isDatePickerVisible) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isDatePickerVisible]);
+
+    const displayDateRange = () => {
+        const today = dayjs().startOf('day');
+        const yesterday = dayjs().subtract(1, 'day').startOf('day');
+
+        if (startDate && endDate) {
+            const start = dayjs(startDate).startOf('day');
+            const end = dayjs(endDate).startOf('day');
+
+            const isSameDay = start.isSame(end, 'day');
+            const isToday = end.isSame(today, 'day');
+            const isYesterday = end.isSame(yesterday, 'day');
+
+            if (isSameDay) {
+                if (isToday) {
+                    return 'Hôm nay ' + end.format('DD/MM/YYYY');
+                } else if (isYesterday) {
+                    return 'Hôm qua ' + end.format('DD/MM/YYYY');
+                } else {
+                    return end.format('DD/MM/YYYY');
+                }
+            } else {
+                const formattedStart = start.format('DD/MM/YYYY');
+                if (isToday) {
+                    return `Từ ${formattedStart} đến Hôm nay`;
+                } else if (isYesterday) {
+                    return `Từ ${formattedStart} đến Hôm qua`;
+                } else {
+                    const formattedEnd = end.format('DD/MM/YYYY');
+                    return `Từ ${formattedStart} đến ${formattedEnd}`;
+                }
+            }
+        } else {
+            return 'Hôm nay ' + today.format('DD/MM/YYYY');
+        }
+    };
+
+    const applyDateRange = () => {
+        setStartDate(tempStartDate);
+        setEndDate(tempEndDate);
+        setIsDatePickerVisible(false);
+    };
+
+    const handleShortcutClick = (shortcut: (typeof shortcutsItems)[0]) => {
+        const [start, end] = shortcut.getValue();
+        setTempStartDate(start);
+        setTempEndDate(end);
+        setStartDate(start);
+        setEndDate(end);
+        setIsDatePickerVisible(false);
     };
 
     return (
@@ -368,18 +675,79 @@ export default function ComponentListDomain() {
                                 <p className="hidden md:block">Xóa</p>
                             </button>
                         </div>
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(1);
-                            }}
-                            placeholder="Tìm kiếm..."
-                            className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
-                        />
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                            <div className="relative flex w-full justify-end" ref={datePickerRef}>
+                                <button className="btn btn-primary w-max whitespace-nowrap rounded px-3 py-1" onClick={toggleDatePicker}>
+                                    <p className="ml-2 hidden md:block">{displayDateRange()}</p>
+                                    <IconCalendar className="block h-5 w-5 md:hidden" />
+                                </button>
+                                {isDatePickerVisible && (
+                                    <div className="absolute right-0 top-full z-10 mt-2 flex flex-col gap-2 rounded-lg border-[1px] !border-white bg-white px-6 py-4 !outline-none dark:!border-[#191e3a] dark:bg-black md:w-auto md:min-w-[400px] md:flex-row">
+                                        <div className="flex flex-col gap-2">
+                                            {shortcutsItems.map((shortcut, index) => (
+                                                <button key={index} onClick={() => handleShortcutClick(shortcut)} className="btn btn-primary flex-1 whitespace-nowrap rounded px-3 py-1">
+                                                    {shortcut.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex w-full flex-col justify-between gap-2">
+                                            <div className="flex flex-1 flex-col gap-2">
+                                                <p className="hidden md:block">Chọn ngày</p>
+                                                <div>
+                                                    <Flatpickr
+                                                        value={tempStartDate || undefined}
+                                                        options={{
+                                                            dateFormat: 'd-m-Y',
+                                                        }}
+                                                        className="form-input"
+                                                        placeholder="Chọn ngày bắt đầu"
+                                                        onChange={handleStartDateChange}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Flatpickr
+                                                        value={tempEndDate || undefined}
+                                                        options={{
+                                                            dateFormat: 'd-m-Y',
+                                                        }}
+                                                        className="form-input"
+                                                        placeholder="Chọn ngày kết thúc"
+                                                        onChange={handleEndDateChange}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="mt-0 flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setTempStartDate(startDate);
+                                                        setTempEndDate(endDate);
+                                                        setIsDatePickerVisible(false);
+                                                    }}
+                                                    className="btn btn-secondary flex-1 whitespace-nowrap rounded px-4 py-2"
+                                                >
+                                                    Hủy
+                                                </button>
+                                                <button onClick={applyDateRange} className="btn btn-success flex-1 whitespace-nowrap rounded px-4 py-2">
+                                                    Áp dụng
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
+                                placeholder="Tìm kiếm..."
+                                className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white w-full4"
+                            />
+                        </div>
                     </div>
-                    <div className="datatables pagination-padding">
+                    <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
                         <DataTable
                             className="table-hover whitespace-nowrap"
                             records={paginatedRecords}
@@ -407,6 +775,41 @@ export default function ComponentListDomain() {
                             highlightOnHover
                             rowClassName={(record) => (isDomainExpired(record.timeRegDomain) ? '!bg-red-300 hover:!bg-red-200 text-black' : '')}
                         />
+                    </div>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center custom-select px-4">
+                        <div>
+                            <label>Loại site</label>
+                            <Select
+                                id="typeSite"
+                                placeholder="Chọn loại site..."
+                                options={typeSiteOptions}
+                                value={typeSiteOptions.find((op) => op.value === typeSite)}
+                                onChange={(val) => setTypeSite(val?.value || 'Tất cả')}
+                                className="w-full md:w-[200px]"
+                            />
+                        </div>
+                        <div>
+                            <label>Nhóm site</label>
+                            <Select
+                                id="groupSite"
+                                placeholder="Chọn nhóm site..."
+                                options={groupSiteOptions}
+                                value={groupSiteOptions.find((op) => op.value === groupSite)}
+                                onChange={(val) => setGroupSite(val?.value || 'Tất cả')}
+                                className="w-full md:w-[200px]"
+                            />
+                        </div>
+                        <div>
+                            <label>Người phụ trách</label>
+                            <Select
+                                id="person"
+                                placeholder="Chọn người phụ trách..."
+                                options={personOptions}
+                                value={personOptions.find((op) => op.value === person)}
+                                onChange={(val) => setPerson(val?.value || 'Tất cả')}
+                                className="w-full md:w-[200px]"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

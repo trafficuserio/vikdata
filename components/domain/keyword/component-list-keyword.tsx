@@ -114,7 +114,7 @@ export default function ComponentListKeyword() {
             ShowMessageError({ content: 'Lỗi khi tải dữ liệu' });
             console.error('Fetch data error:', error);
         } finally {
-            setIsLoading(false); // End loading
+            setIsLoading(false);
         }
     }
 
