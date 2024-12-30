@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { sortBy as lodashSortBy } from 'lodash';
-import { DataTable, DataTableColumn } from 'mantine-datatable';
+import { DataTable, DataTableColumn, DataTableSortStatus } from 'mantine-datatable';
 import Cookies from 'js-cookie';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import logout from '@/utils/logout';
@@ -144,6 +144,8 @@ interface DomainData {
     totalPost: number;
     totalPagePublish: number;
     totalPage: number;
+    total_key_ahrerf: number;
+    traffic_ahrerf: number;
 }
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -178,13 +180,7 @@ export default function ComponentListDomain() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
     const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<{
-        columnAccessor: keyof DomainData;
-        direction: 'asc' | 'desc';
-    }>({
-        columnAccessor: 'domain',
-        direction: 'asc',
-    });
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({ columnAccessor: 'domain', direction: 'asc' });
     const [selectedRecords, setSelectedRecords] = useState<DomainData[]>([]);
     const token = Cookies.get('token');
 
@@ -192,8 +188,8 @@ export default function ComponentListDomain() {
     const [groupSite, setGroupSite] = useState('Tất cả');
     const [person, setPerson] = useState('Tất cả');
 
-    const [startDate, setStartDate] = useState<Date | null>(() => dayjs().subtract(7, 'day').startOf('day').toDate());
-    const [endDate, setEndDate] = useState<Date | null>(() => dayjs().endOf('day').toDate());
+    const [startDate, setStartDate] = useState<Date | null>(null);
+    const [endDate, setEndDate] = useState<Date | null>(null);
     const [tempStartDate, setTempStartDate] = useState<Date | null>(null);
     const [tempEndDate, setTempEndDate] = useState<Date | null>(null);
     const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
@@ -271,6 +267,8 @@ export default function ComponentListDomain() {
                         totalPost: totalPost || 0,
                         totalPagePublish: totalPagePublish || 0,
                         totalPage: totalPage || 0,
+                        total_key_ahrerf: item.total_key_ahrerf || 0,
+                        traffic_ahrerf: item.traffic_ahrerf || 0,
                     };
                 });
                 setDomains(mapped);
@@ -301,7 +299,7 @@ export default function ComponentListDomain() {
 
             return matchesSearch && matchesTypeSite && matchesGroupSite && matchesPerson && withinDateRange;
         });
-        if (sortStatus.columnAccessor) {
+        if (sortStatus) {
             filtered = lodashSortBy(filtered, sortStatus.columnAccessor);
             if (sortStatus.direction === 'desc') {
                 filtered = filtered.reverse();
@@ -521,7 +519,7 @@ export default function ComponentListDomain() {
         },
         {
             accessor: 'total_impressions_day',
-            title: 'Lượt hiển thị',
+            title: 'Lượt hiển thị GSC',
             sortable: true,
             textAlignment: 'left',
             render: ({ domainGoogleConsoles }) => {
@@ -530,6 +528,20 @@ export default function ComponentListDomain() {
                 }
                 return '0';
             },
+        },
+        {
+            accessor: 'total_key_ahrerf',
+            title: 'Tổng từ khóa Ahref',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ total_key_ahrerf }) => total_key_ahrerf.toLocaleString(),
+        },
+        {
+            accessor: 'traffic_ahrerf',
+            title: 'Traffic từ khóa Ahref',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ traffic_ahrerf }) => traffic_ahrerf.toLocaleString(),
         },
         {
             accessor: 'action',
@@ -606,38 +618,37 @@ export default function ComponentListDomain() {
     }, [isDatePickerVisible]);
 
     const displayDateRange = () => {
+        if (!startDate || !endDate) {
+            return 'Tất cả';
+        }
         const today = dayjs().startOf('day');
         const yesterday = dayjs().subtract(1, 'day').startOf('day');
 
-        if (startDate && endDate) {
-            const start = dayjs(startDate).startOf('day');
-            const end = dayjs(endDate).startOf('day');
+        const start = dayjs(startDate).startOf('day');
+        const end = dayjs(endDate).startOf('day');
 
-            const isSameDay = start.isSame(end, 'day');
-            const isToday = end.isSame(today, 'day');
-            const isYesterday = end.isSame(yesterday, 'day');
+        const isSameDay = start.isSame(end, 'day');
+        const isToday = end.isSame(today, 'day');
+        const isYesterday = end.isSame(yesterday, 'day');
 
-            if (isSameDay) {
-                if (isToday) {
-                    return 'Hôm nay ' + end.format('DD/MM/YYYY');
-                } else if (isYesterday) {
-                    return 'Hôm qua ' + end.format('DD/MM/YYYY');
-                } else {
-                    return end.format('DD/MM/YYYY');
-                }
+        if (isSameDay) {
+            if (isToday) {
+                return 'Hôm nay ' + end.format('DD/MM/YYYY');
+            } else if (isYesterday) {
+                return 'Hôm qua ' + end.format('DD/MM/YYYY');
             } else {
-                const formattedStart = start.format('DD/MM/YYYY');
-                if (isToday) {
-                    return `Từ ${formattedStart} đến Hôm nay`;
-                } else if (isYesterday) {
-                    return `Từ ${formattedStart} đến Hôm qua`;
-                } else {
-                    const formattedEnd = end.format('DD/MM/YYYY');
-                    return `Từ ${formattedStart} đến ${formattedEnd}`;
-                }
+                return end.format('DD/MM/YYYY');
             }
         } else {
-            return 'Hôm nay ' + today.format('DD/MM/YYYY');
+            const formattedStart = start.format('DD/MM/YYYY');
+            if (isToday) {
+                return `Từ ${formattedStart} đến Hôm nay`;
+            } else if (isYesterday) {
+                return `Từ ${formattedStart} đến Hôm qua`;
+            } else {
+                const formattedEnd = end.format('DD/MM/YYYY');
+                return `Từ ${formattedStart} đến ${formattedEnd}`;
+            }
         }
     };
 
@@ -678,8 +689,8 @@ export default function ComponentListDomain() {
                         <div className="flex flex-col gap-4 md:flex-row md:items-center">
                             <div className="relative flex w-full justify-end" ref={datePickerRef}>
                                 <button className="btn btn-primary w-max whitespace-nowrap rounded px-3 py-1" onClick={toggleDatePicker}>
-                                    <p className="ml-2 hidden md:block">{displayDateRange()}</p>
-                                    <IconCalendar className="block h-5 w-5 md:hidden" />
+                                    <IconCalendar className="block h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">{!startDate && !endDate ? 'Tất cả' : displayDateRange()}</p>
                                 </button>
                                 {isDatePickerVisible && (
                                     <div className="absolute right-0 top-full z-10 mt-2 flex flex-col gap-2 rounded-lg border-[1px] !border-white bg-white px-6 py-4 !outline-none dark:!border-[#191e3a] dark:bg-black md:w-auto md:min-w-[400px] md:flex-row">
@@ -764,7 +775,7 @@ export default function ComponentListDomain() {
                             sortStatus={sortStatus}
                             onSortStatusChange={({ columnAccessor, direction }) => {
                                 setSortStatus({
-                                    columnAccessor: columnAccessor as keyof DomainData,
+                                    columnAccessor: columnAccessor as string,
                                     direction: direction as 'asc' | 'desc',
                                 });
                                 setPage(1);

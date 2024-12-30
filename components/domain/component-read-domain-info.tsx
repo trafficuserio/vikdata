@@ -94,6 +94,14 @@ const ComponentReadInfo = () => {
                     <span className="text-base">{new Date(domainInfo.time_index).toLocaleDateString()}</span>
                 </li>
                 <li className="flex gap-2">
+                    <strong className="font-medium text-base">Tổng từ khóa:</strong>
+                    <span className="text-base">{domainInfo.total_key_ahrerf}</span>
+                </li>
+                <li className="flex gap-2">
+                    <strong className="font-medium text-base">Traffic khóa:</strong>
+                    <span className="text-base">{domainInfo.traffic_ahrerf}</span>
+                </li>
+                <li className="flex gap-2">
                     <strong className="font-medium text-base">Mô tả:</strong>
                     <span className="text-base">{domainInfo.description}</span>
                 </li>

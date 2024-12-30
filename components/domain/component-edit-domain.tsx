@@ -90,6 +90,8 @@ interface DomainData {
     refreshTokenAds: string;
     clientSecretAds: ClientSecretAds;
     accountIdAds: string;
+    totalKeyAhrerf: number;
+    trafficAhrerf: number;
 }
 
 export default function ComponentEditDomain() {
@@ -112,6 +114,8 @@ export default function ComponentEditDomain() {
     const [timeRegDomain, setTimeRegDomain] = useState('');
     const [fileKeyword, setFileKeyword] = useState('');
     const [description, setDescription] = useState('');
+    const [totalKeyAhrerf, setTotalKeyAhrerf] = useState(0);
+    const [trafficAhrerf, setTrafficAhrerf] = useState(0);
 
     const [keyAnalyticsJSON, setKeyAnalyticsJSON] = useState('');
     const [keySearchConsoleJSON, setKeySearchConsoleJSON] = useState('');
@@ -165,6 +169,8 @@ export default function ComponentEditDomain() {
                         timeRegDomain: data.data.time_reg_domain ? data.data.time_reg_domain.substring(0, 10) : '',
                         fileKeyword: data.data.file_key_word || '',
                         description: data.data.description || '',
+                        totalKeyAhrerf: data.data.total_key_ahrerf || 0,
+                        trafficAhrerf: data.data.traffic_ahrerf || 0,
                     };
 
                     setDomain(item.domain);
@@ -180,6 +186,8 @@ export default function ComponentEditDomain() {
                     setTimeRegDomain(item.timeRegDomain);
                     setFileKeyword(item.fileKeyword);
                     setDescription(item.description || '');
+                    setTotalKeyAhrerf(item.totalKeyAhrerf);
+                    setTrafficAhrerf(item.trafficAhrerf);
 
                     setKeyAnalyticsJSON(JSON.stringify(item.keyAnalytics, null, 2));
                     setKeySearchConsoleJSON(JSON.stringify(item.keySearchConsole, null, 2));
@@ -249,6 +257,8 @@ export default function ComponentEditDomain() {
             timeRegDomain,
             fileKeyword,
             description,
+            totalKeyAhrerf,
+            trafficAhrerf,
         };
 
         setSubmitting(true);
@@ -449,6 +459,34 @@ export default function ComponentEditDomain() {
                         <label htmlFor="status" className="ml-2 font-medium mb-0">
                             Trạng thái
                         </label>
+                    </div>
+
+                    <div>
+                        <label htmlFor="" className="block mb-1 font-medium">
+                            Tổng từ khóa Ahref <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="totalKeyAhrerf"
+                            type="number"
+                            placeholder="Nhập tổng từ khóa Ahref..."
+                            value={totalKeyAhrerf}
+                            onChange={(e) => setTotalKeyAhrerf(Number(e.target.value))}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="" className="block mb-1 font-medium">
+                            Traffic Ahref <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="trafficAhrerf"
+                            type="number"
+                            placeholder="Nhập traffic Ahref..."
+                            value={trafficAhrerf}
+                            onChange={(e) => setTrafficAhrerf(Number(e.target.value))}
+                            className="w-full border p-2 rounded form-input"
+                        />
                     </div>
 
                     {/* JSON Fields */}

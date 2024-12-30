@@ -47,6 +47,8 @@ export default function ComponentAddDomain() {
     const [timeRegDomain, setTimeRegDomain] = useState('');
     const [fileKeyword, setFileKeyword] = useState('');
     const [description, setDescription] = useState('');
+    const [totalKeyAhrerf, setTotalKeyAhrerf] = useState(0);
+    const [trafficAhrerf, setTrafficAhrerf] = useState(0);
 
     const [keyAnalyticsJSON, setKeyAnalyticsJSON] = useState('');
     const [keySearchConsoleJSON, setKeySearchConsoleJSON] = useState('');
@@ -102,6 +104,8 @@ export default function ComponentAddDomain() {
                     refreshTokenAds,
                     clientSecretAds: clientSecretAds || {},
                     accountIdAds,
+                    totalKeyAhrerf,
+                    trafficAhrerf: Number(trafficAhrerf),
                 },
             ],
         };
@@ -291,6 +295,34 @@ export default function ComponentAddDomain() {
                         <label htmlFor="status" className="ml-2 font-medium mb-0">
                             Trạng thái
                         </label>
+                    </div>
+
+                    <div>
+                        <label htmlFor="" className="block mb-1 font-medium">
+                            Tổng từ khóa Ahref <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="totalKeyAhrerf"
+                            type="text"
+                            placeholder="Nhập tổng từ khóa Ahref..."
+                            value={totalKeyAhrerf}
+                            onChange={(e) => setTotalKeyAhrerf(Number(e.target.value))}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="" className="block mb-1 font-medium">
+                            Traffic Ahref <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="trafficAhrerf"
+                            type="number"
+                            placeholder="Nhập traffic Ahref..."
+                            value={trafficAhrerf}
+                            onChange={(e) => setTrafficAhrerf(Number(e.target.value))}
+                            className="w-full border p-2 rounded form-input"
+                        />
                     </div>
 
                     {/* JSON Fields */}
