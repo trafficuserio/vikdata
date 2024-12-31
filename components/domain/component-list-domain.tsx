@@ -688,7 +688,7 @@ export default function ComponentListDomain() {
 
     const displayDateRange = () => {
         if (!startDate || !endDate) {
-            return 'Tất cả';
+            return 'Tìm theo ngày Index';
         }
         const today = dayjs().startOf('day');
         const yesterday = dayjs().subtract(1, 'day').startOf('day');
@@ -759,7 +759,7 @@ export default function ComponentListDomain() {
                             <div className="relative flex w-full justify-end" ref={datePickerRef}>
                                 <button className="btn btn-primary w-max whitespace-nowrap rounded px-3 py-1" onClick={toggleDatePicker}>
                                     <IconCalendar className="block h-5 w-5" />
-                                    <p className="ml-2 hidden md:block">{!startDate && !endDate ? 'Tất cả' : displayDateRange()}</p>
+                                    <p className="ml-2 hidden md:block">{!startDate && !endDate ? 'Tìm theo ngày Index' : displayDateRange()}</p>
                                 </button>
                                 {isDatePickerVisible && (
                                     <div className="absolute right-0 top-full z-10 mt-2 flex flex-col gap-2 rounded-lg border-[1px] !border-white bg-white px-6 py-4 !outline-none dark:!border-[#191e3a] dark:bg-black md:w-auto md:min-w-[400px] md:flex-row">
