@@ -7,6 +7,8 @@ import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
 import { useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
+import logout from '@/utils/logout';
 
 interface RankKeyData {
     id: number;
@@ -86,7 +88,11 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
 
             const result: ApiResponse = await response.json();
 
-            if (result.errorcode !== 200) {
+            if ([401, 403].includes(result.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (result.errorcode !== 200) {
                 throw new Error(result.message || 'Lỗi không xác định');
             }
 
@@ -145,7 +151,7 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                 </a>
             ),
         },
-        { accessor: 'rank_keyword', title: 'Vị trí', sortable: true, render: ({ rank_keyword }) => (rank_keyword > 0 ? formatNumber(rank_keyword) : 'Chưa có') },
+        { accessor: 'rank_keyword', title: 'Vị trí', sortable: true, render: ({ rank_keyword }) => formatNumber(rank_keyword) },
         { accessor: 'day', title: 'Ngày', sortable: true, render: ({ day }) => dayjs(day).format('DD/MM/YYYY') },
     ];
 

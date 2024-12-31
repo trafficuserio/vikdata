@@ -30,7 +30,11 @@ export default function ComponentCreateGoogleSearchApi() {
             }),
         });
         const result = await res.json();
-        if (result.errorcode === 200) {
+        if ([401, 403].includes(result.errorcode)) {
+            ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+            logout();
+            return;
+        } else if (result.errorcode === 200) {
             ShowMessageSuccess({ content: 'Thêm thành công!' });
             router.push('/google-search-api');
         } else {

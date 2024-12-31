@@ -23,7 +23,6 @@ const PAGE_SIZES = [5, 10, 20, 30, 50];
 export default function ComponentListGoogleSearchApi() {
     const token = Cookies.get('token');
 
-
     const [data, setData] = useState<GoogleSearchApiData[]>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
@@ -93,7 +92,11 @@ export default function ComponentListGoogleSearchApi() {
                 body: JSON.stringify({ id: [id] }),
             });
             const json = await res.json();
-            if (json?.errorcode === 200) {
+            if ([401, 403].includes(json.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (json?.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Xóa thành công!' });
                 fetchData();
                 setSelectedRecords([]);
@@ -118,7 +121,11 @@ export default function ComponentListGoogleSearchApi() {
                 body: JSON.stringify({ id: ids }),
             });
             const json = await res.json();
-            if (json?.errorcode === 200) {
+            if ([401, 403].includes(json.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (json?.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Xóa thành công!' });
                 fetchData();
                 setSelectedRecords([]);
@@ -174,7 +181,6 @@ export default function ComponentListGoogleSearchApi() {
             textAlignment: 'center',
             render: (record) => (
                 <div className="flex justify-center gap-4">
-
                     <Link href={`/google-search-api/edit?id=${record.id}`} className="text-info hover:text-primary-dark">
                         <IconEdit />
                     </Link>

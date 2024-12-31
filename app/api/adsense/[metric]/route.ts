@@ -31,7 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: { metric: stri
             body: payload.toString(),
         });
 
-        if (!response.ok) throw new Error('Failed to refresh access token');
+        if (!response.ok) throw new Error('Failed to refresh access token' + (await response.text()));
         const data = await response.json();
 
         if (data.refresh_token) {

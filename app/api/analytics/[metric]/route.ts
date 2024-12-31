@@ -4,18 +4,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAnalyticsDataClient } from '@/lib/googleAnalytics';
 
 const getDomainInfoById = async (domainId: string, token: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
         },
     });
 
-    if (!res.ok) {
-        throw new Error('Failed to fetch domain information');
+    const data = await response.json();
+
+    if (data.errorcode === 401) {
+        const logoutResponse = NextResponse.json({ error: 'Phiên đăng nhập hết hạn' }, { status: 401 });
+        logoutResponse.cookies.set('token', '', {
+            path: '/',
+            expires: new Date(0),
+        });
+        return logoutResponse;
     }
 
-    const data = await res.json();
+    if (!response.ok && data.errorcode !== 401) {
+        throw new Error(data.message || 'Failed to refresh access token');
+    }
 
     if (data.errorcode !== 200) {
         throw new Error(data.message || 'Error fetching domain information');

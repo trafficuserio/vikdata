@@ -352,7 +352,11 @@ export default function ComponentListDomain() {
                     body: JSON.stringify({ id: [id] }),
                 });
                 const data = await res.json();
-                if (data && data.errorcode === 200) {
+                if ([401, 403].includes(data.errorcode)) {
+                    ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                    logout();
+                    return;
+                } else if (data && data.errorcode === 200) {
                     ShowMessageSuccess({ content: 'Xóa thành công' });
                     fetchData();
                     setSelectedRecords([]);
@@ -371,7 +375,11 @@ export default function ComponentListDomain() {
                     body: JSON.stringify({ id: ids }),
                 });
                 const data = await res.json();
-                if (data && data.errorcode === 200) {
+                if ([401, 403].includes(data.errorcode)) {
+                    ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                    logout();
+                    return;
+                } else if (data && data.errorcode === 200) {
                     ShowMessageSuccess({ content: 'Xóa thành công' });
                     fetchData();
                     setSelectedRecords([]);
@@ -399,41 +407,23 @@ export default function ComponentListDomain() {
                 </Link>
             ),
         },
-        {
-            accessor: 'typeSite',
-            title: 'Loại site',
-            sortable: true,
-            textAlignment: 'left',
-        },
-        {
-            accessor: 'groupSite',
-            title: 'Nhóm site',
-            sortable: true,
-            textAlignment: 'left',
-        },
+        // {
+        //     accessor: 'typeSite',
+        //     title: 'Loại site',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        // },
+        // {
+        //     accessor: 'groupSite',
+        //     title: 'Nhóm site',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        // },
         {
             accessor: 'person',
             title: 'Người phụ trách',
             sortable: true,
             textAlignment: 'left',
-        },
-        {
-            accessor: 'status',
-            title: 'Trạng thái',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ status }) => (
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {status ? 'Hoạt động' : 'Không hoạt động'}
-                </span>
-            ),
-        },
-        {
-            accessor: 'totalLink',
-            title: 'Tổng link',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ totalLink }) => totalLink.toLocaleString(),
         },
         {
             accessor: 'timeIndex',
@@ -442,13 +432,17 @@ export default function ComponentListDomain() {
             textAlignment: 'left',
             render: ({ timeIndex }) => (timeIndex ? new Date(timeIndex).toLocaleDateString() : ''),
         },
-        {
-            accessor: 'timeRegDomain',
-            title: 'Ngày Reg Domain',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ timeRegDomain }) => (timeRegDomain ? new Date(timeRegDomain).toLocaleDateString() : ''),
-        },
+        // {
+        //     accessor: 'status',
+        //     title: 'Trạng thái',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ status }) => (
+        //         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        //             {status ? 'Hoạt động' : 'Không hoạt động'}
+        //         </span>
+        //     ),
+        // },
         {
             accessor: 'fileKeyword',
             title: 'Tập tin từ khóa',
@@ -461,12 +455,20 @@ export default function ComponentListDomain() {
             ),
         },
         {
-            accessor: 'totalPostPublish',
-            title: 'Tổng bài viết đã xuất bản',
+            accessor: 'totalLink',
+            title: 'Tổng url',
             sortable: true,
             textAlignment: 'left',
-            render: ({ totalPostPublish }) => totalPostPublish.toLocaleString(),
+            render: ({ totalLink }) => totalLink.toLocaleString(),
         },
+        // {
+        //     accessor: 'timeRegDomain',
+        //     title: 'Ngày Reg Domain',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ timeRegDomain }) => (timeRegDomain ? new Date(timeRegDomain).toLocaleDateString() : ''),
+        // },
+
         {
             accessor: 'totalPost',
             title: 'Tổng bài viết',
@@ -475,36 +477,43 @@ export default function ComponentListDomain() {
             render: ({ totalPost }) => totalPost.toLocaleString(),
         },
         {
-            accessor: 'totalPage',
-            title: 'Tổng bài nháp',
+            accessor: 'totalPostPublish',
+            title: 'Bài viết đã đăng',
             sortable: true,
             textAlignment: 'left',
-            render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
+            render: ({ totalPostPublish }) => totalPostPublish.toLocaleString(),
         },
-        {
-            accessor: 'totalPagePublish',
-            title: 'Tổng trang đã xuất bản',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ totalPagePublish }) => totalPagePublish.toLocaleString(),
-        },
-        {
-            accessor: 'totalPage',
-            title: 'Tổng trang',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ totalPage }) => totalPage.toLocaleString(),
-        },
-        {
-            accessor: 'totalPage',
-            title: 'Tổng trang nháp',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
-        },
+        // {
+        //     accessor: 'totalPage',
+        //     title: 'Tổng bài nháp',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
+        // },
+        // {
+        //     accessor: 'totalPagePublish',
+        //     title: 'Tổng trang đã xuất bản',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ totalPagePublish }) => totalPagePublish.toLocaleString(),
+        // },
+        // {
+        //     accessor: 'totalPage',
+        //     title: 'Tổng trang',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ totalPage }) => totalPage.toLocaleString(),
+        // },
+        // {
+        //     accessor: 'totalPage',
+        //     title: 'Tổng trang nháp',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
+        // },
         {
             accessor: 'traffic_day',
-            title: 'Traffic ngày Analytics',
+            title: 'Traffic Analytics',
             sortable: true,
             textAlignment: 'left',
             render: ({ domainGoogleAnalytics }) => {
@@ -516,7 +525,7 @@ export default function ComponentListDomain() {
         },
         {
             accessor: 'traffic_day_gsc',
-            title: 'Traffic ngày GSC',
+            title: 'Traffic GSC',
             sortable: true,
             textAlignment: 'left',
             render: ({ domainGoogleConsoles }) => {
@@ -540,33 +549,21 @@ export default function ComponentListDomain() {
         },
         {
             accessor: 'total_key_ahrerf',
-            title: 'Tổng từ khóa Ahref',
+            title: 'Từ khóa Ahrefs',
             sortable: true,
             textAlignment: 'left',
             render: ({ total_key_ahrerf }) => total_key_ahrerf.toLocaleString(),
         },
         {
             accessor: 'traffic_ahrerf',
-            title: 'Traffic từ khóa Ahref',
+            title: 'Traffic Ahrefs',
             sortable: true,
             textAlignment: 'left',
             render: ({ traffic_ahrerf }) => traffic_ahrerf.toLocaleString(),
         },
         {
-            accessor: 'total_click',
-            title: 'Tổng Click',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ inforWeb_dataGoogleAdsenses }) => {
-                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
-                    return inforWeb_dataGoogleAdsenses[0].total_click.toLocaleString();
-                }
-                return '0';
-            },
-        },
-        {
             accessor: 'total_view',
-            title: 'Tổng View',
+            title: 'Virew Adsense',
             sortable: true,
             textAlignment: 'left',
             render: ({ inforWeb_dataGoogleAdsenses }) => {
@@ -577,8 +574,21 @@ export default function ComponentListDomain() {
             },
         },
         {
+            accessor: 'total_click',
+            title: 'Click Adsense',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ inforWeb_dataGoogleAdsenses }) => {
+                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+                    return inforWeb_dataGoogleAdsenses[0].total_click.toLocaleString();
+                }
+                return '0';
+            },
+        },
+
+        {
             accessor: 'total_cpc',
-            title: 'Tổng CPC',
+            title: 'CPC',
             sortable: true,
             textAlignment: 'left',
             render: ({ inforWeb_dataGoogleAdsenses }) => {
@@ -590,7 +600,7 @@ export default function ComponentListDomain() {
         },
         {
             accessor: 'ctr',
-            title: 'CTR (%)',
+            title: 'CTR',
             sortable: true,
             textAlignment: 'left',
             render: ({ inforWeb_dataGoogleAdsenses }) => {
@@ -612,7 +622,7 @@ export default function ComponentListDomain() {
                     <Link href={`/domain/edit?id=${item.id}`} className="text-yellow-500 hover:text-yellow-700">
                         <IconEdit />
                     </Link>
-                    <Link href={`/domain/keyword?idGoogleSearch=${item.id}`} className="text-primary hover:text-primary-dark">
+                    <Link href={`/domain/keyword?id=${item.id}`} className="text-primary hover:text-primary-dark">
                         <IconKeyword />
                     </Link>
                     <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}>

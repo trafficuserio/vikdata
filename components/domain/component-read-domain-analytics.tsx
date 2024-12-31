@@ -1,5 +1,3 @@
-// app/components/domain/component-read-domain-analytics.tsx
-
 'use client';
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
@@ -9,6 +7,8 @@ import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
+import logout from '@/utils/logout';
 
 interface MetricsData {
     [key: string]: string;
@@ -36,16 +36,16 @@ interface ComponentProps {
 }
 
 const friendlyNames: Record<string, string> = {
-    totalUsers: 'Tổng số người dùng',
-    newUsers: 'Số người dùng mới',
-    activeUsers: 'Số người dùng đang hoạt động',
-    sessions: 'Tổng số phiên',
-    engagementRate: 'Tỷ lệ tương tác',
+    activeUsers: 'Người dùng đang hoạt động',
+    totalUsers: 'Tổng người dùng',
+    newUsers: 'Người dùng mới',
     bounceRate: 'Tỷ lệ thoát',
+    sessions: 'Số phiên',
+    averageSessionDuration: 'Thời lượng phiên trung bình',
+    screenPageViews: 'Lượt xem trang',
+    screenPageViewsPerSession: 'Lượt xem trang mỗi phiên',
+    engagementRate: 'Tỷ lệ tương tác',
     userEngagementDuration: 'Tổng thời gian tương tác',
-    sessionsPerUser: 'Số phiên trên mỗi người dùng',
-    screenPageViews: 'Lượt xem trang hoặc màn hình',
-    screenPageViewsPerSession: 'Lượt xem trang/màn hình mỗi phiên',
 };
 
 const units: Record<string, string> = {
@@ -57,16 +57,16 @@ const units: Record<string, string> = {
 };
 
 const seriesNameToMetricKey: Record<string, string> = {
-    'Tổng số người dùng': 'totalUsers',
+    'Người dùng đang hoạt động': 'activeUsers',
+    'Tổng người dùng': 'totalUsers',
     'Người dùng mới': 'newUsers',
-    'Số người dùng đang hoạt động': 'activeUsers',
-    'Tổng số phiên': 'sessions',
-    'Tỷ lệ tương tác': 'engagementRate',
     'Tỷ lệ thoát': 'bounceRate',
+    'Số phiên': 'sessions',
+    'Thời lượng phiên trung bình': 'averageSessionDuration',
+    'Lượt xem trang': 'screenPageViews',
+    'Lượt xem trang mỗi phiên': 'screenPageViewsPerSession',
+    'Tỷ lệ tương tác': 'engagementRate',
     'Tổng thời gian tương tác': 'userEngagementDuration',
-    'Số phiên trên mỗi người dùng': 'sessionsPerUser',
-    'Lượt xem trang/màn hình': 'screenPageViews',
-    'Lượt xem trang/màn hình mỗi phiên': 'screenPageViewsPerSession',
 };
 
 const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, endDate }) => {
@@ -112,7 +112,11 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
 
                 const data = await res.json();
 
-                if (data.errorcode !== 200) {
+                if ([401, 403].includes(data.errorcode)) {
+                    ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                    logout();
+                    return;
+                } else if (data.errorcode !== 200) {
                     throw new Error(data.message || 'Error fetching domain information');
                 }
 
@@ -165,16 +169,16 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
                     }));
                 const generatedDates = sortedData.map((d) => d.period);
 
+                const activeUsersArray = sortedData.map((d) => Number(d.metrics.activeUsers || 0));
                 const totalUsersArray = sortedData.map((d) => Number(d.metrics.totalUsers || 0));
                 const newUsersArray = sortedData.map((d) => Number(d.metrics.newUsers || 0));
-                const activeUsersArray = sortedData.map((d) => Number(d.metrics.activeUsers || 0));
-                const sessionsArray = sortedData.map((d) => Number(d.metrics.sessions || 0));
-                const engagementRateArray = sortedData.map((d) => Number(d.metrics.engagementRate || 0));
                 const bounceRateArray = sortedData.map((d) => Number(d.metrics.bounceRate || 0));
-                const userEngagementDurationArray = sortedData.map((d) => Number(d.metrics.userEngagementDuration || 0));
-                const sessionsPerUserArray = sortedData.map((d) => Number(d.metrics.sessionsPerUser || 0));
+                const sessionsArray = sortedData.map((d) => Number(d.metrics.sessions || 0));
+                const averageSessionDurationArray = sortedData.map((d) => Number(d.metrics.averageSessionDuration || 0));
                 const screenPageViewsArray = sortedData.map((d) => Number(d.metrics.screenPageViews || 0));
-                const screenPageViewsPerSession = sortedData.map((d) => Number(d.metrics.screenPageViewsPerSession || 0));
+                const screenPageViewsPerSessionArray = sortedData.map((d) => Number(d.metrics.screenPageViewsPerSession || 0));
+                const engagementRateArray = sortedData.map((d) => Number(d.metrics.engagementRate || 0));
+                const userEngagementDurationArray = sortedData.map((d) => Number(d.metrics.userEngagementDuration || 0));
 
                 const sums: Record<string, number> = {};
                 metrics.forEach((m) => {
@@ -183,16 +187,16 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
 
                 setChartData({
                     series: [
-                        { name: 'Tổng số người dùng', data: totalUsersArray },
-                        { name: 'Người dùng mới', data: newUsersArray },
-                        { name: 'Số người dùng đang hoạt động', data: activeUsersArray },
-                        { name: 'Tổng số phiên', data: sessionsArray },
-                        { name: 'Tỷ lệ tương tác', data: engagementRateArray },
-                        { name: 'Tỷ lệ thoát', data: bounceRateArray },
-                        { name: 'Tổng thời gian tương tác', data: userEngagementDurationArray },
-                        { name: 'Số phiên trên mỗi người dùng', data: sessionsPerUserArray },
-                        { name: 'Lượt xem trang/màn hình', data: screenPageViewsArray },
-                        { name: 'Lượt xem trang/màn hình mỗi phiên', data: screenPageViewsPerSession },
+                        { name: friendlyNames['activeUsers'], data: activeUsersArray },
+                        { name: friendlyNames['totalUsers'], data: totalUsersArray },
+                        { name: friendlyNames['newUsers'], data: newUsersArray },
+                        { name: friendlyNames['bounceRate'], data: bounceRateArray },
+                        { name: friendlyNames['sessions'], data: sessionsArray },
+                        { name: friendlyNames['averageSessionDuration'], data: averageSessionDurationArray },
+                        { name: friendlyNames['screenPageViews'], data: screenPageViewsArray },
+                        { name: friendlyNames['screenPageViewsPerSession'], data: screenPageViewsPerSessionArray },
+                        { name: friendlyNames['engagementRate'], data: engagementRateArray },
+                        { name: friendlyNames['userEngagementDuration'], data: userEngagementDurationArray },
                     ],
                     options: {
                         chart: {
@@ -204,13 +208,13 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
                             toolbar: { show: false },
                             events: {
                                 mounted: function (chartContext: any, config: any) {
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Tổng số phiên');
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Tỷ lệ tương tác');
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Tỷ lệ thoát');
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Tổng thời gian tương tác');
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Số phiên trên mỗi người dùng');
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Lượt xem trang/màn hình');
-                                    ApexCharts.exec('myChart', 'hideSeries', 'Lượt xem trang/màn hình mỗi phiên');
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['sessions']);
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['engagementRate']);
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['bounceRate']);
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['userEngagementDuration']);
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['averageSessionDuration']);
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['screenPageViews']);
+                                    ApexCharts.exec('myChart', 'hideSeries', friendlyNames['screenPageViewsPerSession']);
                                 },
                             },
                         },

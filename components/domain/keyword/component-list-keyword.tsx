@@ -38,7 +38,7 @@ const PAGE_SIZES = [10, 20, 30, 50, 100];
 export default function ComponentListKeyword() {
     const token = Cookies.get('token');
     const searchParams = useSearchParams();
-    const idGoogleSearchParam = searchParams.get('idGoogleSearch');
+    const idGoogleSearchParam = searchParams.get('id');
     const idGoogleSearch = idGoogleSearchParam ? Number(idGoogleSearchParam) : NaN;
 
     const [keywords, setKeywords] = useState<KeywordData[]>([]);
@@ -135,7 +135,12 @@ export default function ComponentListKeyword() {
                 body: JSON.stringify({ id: [id] }),
             });
             const json = await res.json();
-            if (json?.errorcode === 200) {
+
+            if ([401, 403].includes(json.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (json?.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Xóa thành công!' });
                 fetchData();
                 setSelectedRecords([]);
@@ -160,7 +165,11 @@ export default function ComponentListKeyword() {
                 body: JSON.stringify({ id: ids }),
             });
             const json = await res.json();
-            if (json?.errorcode === 200) {
+            if ([401, 403].includes(json.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (json?.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Xóa thành công!' });
                 fetchData();
                 setSelectedRecords([]);

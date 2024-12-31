@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
-
+import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
+import logout from '@/utils/logout';
 const ComponentReadInfo = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [domainInfo, setDomainInfo] = useState<any>(null);
@@ -28,7 +29,11 @@ const ComponentReadInfo = () => {
                 }
 
                 const data = await res.json();
-                if (data.errorcode === 200) {
+                if ([401, 403].includes(data.errorcode)) {
+                    ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                    logout();
+                    return;
+                } else if (data.errorcode === 200) {
                     setDomainInfo(data.data);
                 } else {
                     console.error('Error fetching domain info:', data.message);

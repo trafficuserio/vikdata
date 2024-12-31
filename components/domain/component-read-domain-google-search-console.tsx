@@ -44,6 +44,14 @@ const seriesNameToMetricKey: Record<string, string> = {
     Position: 'position',
 };
 
+// 1. Định nghĩa mô tả tiếng Việt cho các metric
+const metricDescriptions: Record<string, string> = {
+    clicks: 'Nhấp chuột',
+    impressions: 'Hiển thị',
+    ctr: 'Tỷ lệ nhấp chuột',
+    position: 'Vị trí trung bình',
+};
+
 const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ startDate, endDate }) => {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
     const [errorGSC, setErrorGSC] = useState<string | null>(null);
@@ -57,7 +65,6 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [search, setSearch] = useState<string>('');
 
-    // States for Chart
     const [chartData, setChartData] = useState<{
         series: {
             name: string;
@@ -107,14 +114,13 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
             const result = await response.json();
             const data: GSCData[] = result.data;
 
-            // Sort data by date
             const sortedData = data.sort((a, b) => dayjs(a.date!).diff(dayjs(b.date!)));
 
             const generatedDates = sortedData.map((d) => dayjs(d.date!).format('DD/MM'));
 
             const clicksArray = sortedData.map((d) => d.clicks);
             const impressionsArray = sortedData.map((d) => d.impressions);
-            const ctrArray = sortedData.map((d) => d.ctr * 100); // Convert to percentage
+            const ctrArray = sortedData.map((d) => d.ctr * 100);
             const positionArray = sortedData.map((d) => d.position);
 
             const totals = {
@@ -276,7 +282,8 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                             <div key={metric} className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
                                 <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg" style={{ backgroundColor: chartData.options.colors[index] || '#008FFB' }}></div>
                                 <h3 className="text-lg font-semibold dark:text-white">{friendlyNames[metric] || metric}</h3>
-                                <p>{['ctr', 'position'].includes(metric) ? `${chartData.totals[metric].toFixed(2)}${units[metric]}` : formatNumber(chartData.totals[metric])} </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{metricDescriptions[metric]}</p>
+                                <p>{['ctr', 'position'].includes(metric) ? `${chartData.totals[metric].toFixed(2)}${units[metric]}` : formatNumber(chartData.totals[metric])}</p>
                             </div>
                         ))}
                     </div>

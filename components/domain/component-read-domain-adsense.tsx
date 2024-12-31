@@ -4,8 +4,10 @@ import dayjs from 'dayjs';
 import ReactApexChart from 'react-apexcharts';
 import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
+import { ShowMessageError } from '@/components/component-show-message';
+import logout from '@/utils/logout';
 
 interface ReportRow {
     cells: { value: string }[];
@@ -17,26 +19,38 @@ interface ComponentProps {
 }
 
 const friendlyNames: Record<string, string> = {
-    CLICKS: 'Số Lượt Click',
-    ESTIMATED_EARNINGS: 'Doanh Thu Ước Tính',
-    COST_PER_CLICK: 'Giá Mỗi Click',
-    AD_REQUESTS_RPM: 'Thu Nhập 1000 Yêu Cầu',
+    ESTIMATED_EARNINGS: 'Estimated Earnings (Doanh Thu Ước Tính)',
+    PAGE_VIEWS: 'Page Views (Lượt Xem Trang)',
+    CLICKS: 'Clicks (Lượt Click)',
+    PAGE_VIEWS_CTR: 'Page Views CTR (CTR Lượt Xem Trang)',
+    TOTAL_IMPRESSIONS: 'Total Impressions (Tổng Lượt Hiển Thị)',
+    PAGE_VIEWS_RPM: 'Page Views RPM (RPM Lượt Xem Trang)',
+    MATCHED_AD_REQUESTS: 'Matched Ad Requests (Lượt view có quảng cáo)',
+    ADS_PER_IMPRESSION: 'Ads per Impression (Số quảng cáo được xem trên trang)',
 };
 
 const units: Record<string, string> = {
-    CLICKS: '',
     ESTIMATED_EARNINGS: 'USD',
-    COST_PER_CLICK: 'USD',
-    AD_REQUESTS_RPM: 'USD',
+    PAGE_VIEWS: '',
+    CLICKS: '',
+    PAGE_VIEWS_CTR: '%',
+    TOTAL_IMPRESSIONS: '',
+    PAGE_VIEWS_RPM: 'USD',
+    MATCHED_AD_REQUESTS: '',
+    ADS_PER_IMPRESSION: '',
 };
 
 const ComponentReadAdSenseAnalytics: React.FC<ComponentProps> = ({ startDate, endDate }) => {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
     const [error, setError] = useState<string | null>(null);
-    const [clicksData, setClicksData] = useState<number[]>([]); // Cập nhật dữ liệu
     const [earningsData, setEarningsData] = useState<number[]>([]);
-    const [costPerClickData, setCostPerClickData] = useState<number[]>([]);
-    const [rpmData, setRpmData] = useState<number[]>([]);
+    const [pageViewsData, setPageViewsData] = useState<number[]>([]);
+    const [clicksData, setClicksData] = useState<number[]>([]);
+    const [pageViewsCtrData, setPageViewsCtrData] = useState<number[]>([]);
+    const [totalImpressionsData, setTotalImpressionsData] = useState<number[]>([]);
+    const [pageViewsRpmData, setPageViewsRpmData] = useState<number[]>([]);
+    const [matchedAdRequestsData, setMatchedAdRequestsData] = useState<number[]>([]);
+    const [adsPerImpressionData, setAdsPerImpressionData] = useState<number[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const searchParams = useSearchParams();
@@ -56,65 +70,80 @@ const ComponentReadAdSenseAnalytics: React.FC<ComponentProps> = ({ startDate, en
         const fetchAdSenseData = async () => {
             setIsLoading(true);
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (!res.ok) {
-                throw new Error('Failed to fetch domain information');
-            }
-
-            const data = await res.json();
-
-            if (data.errorcode !== 200) {
-                throw new Error(data.message || 'Error fetching domain information');
-            }
-
-            const parsedClientSecretAds = JSON.parse(data.data.client_secret_ads);
-
-            const refreshToken = data.data.refresh_token_ads;
-            const clientId = parsedClientSecretAds.installed.client_id;
-            const clientSecret = parsedClientSecretAds.installed.client_secret;
-            const accountId = data.data.account_id_ads;
-            const fullClientSecret = data.data.client_secret_ads;
-
-            const urls = [
-                `/api/adsense/CLICKS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
-                `/api/adsense/ESTIMATED_EARNINGS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
-                `/api/adsense/COST_PER_CLICK?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
-                `/api/adsense/AD_REQUESTS_RPM?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
-            ];
-
             try {
-                const responses = await Promise.all(urls.map((url) => fetch(url)));
-                const dataClicks = await responses[0].json();
-                const dataEarnings = await responses[1].json();
-                const dataCostPerClick = await responses[2].json();
-                const dataRpm = await responses[3].json();
+                const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
 
-                const dateRange = [];
+                if (!res.ok) {
+                    throw new Error('Failed to fetch domain information');
+                }
+
+                const data = await res.json();
+
+                if ([401, 403].includes(data.errorcode)) {
+                    ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                    logout();
+                    return;
+                } else if (data.errorcode !== 200) {
+                    throw new Error(data.message || 'Error fetching domain information');
+                }
+
+                const parsedClientSecretAds = JSON.parse(data.data.client_secret_ads);
+
+                const refreshToken = data.data.refresh_token_ads;
+                const clientId = parsedClientSecretAds.installed.client_id;
+                const clientSecret = parsedClientSecretAds.installed.client_secret;
+                const accountId = data.data.account_id_ads;
+                const fullClientSecret = data.data.client_secret_ads;
+
+                const urls = [
+                    `/api/adsense/ESTIMATED_EARNINGS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/PAGE_VIEWS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/CLICKS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/PAGE_VIEWS_CTR?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/TOTAL_IMPRESSIONS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/PAGE_VIEWS_RPM?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/MATCHED_AD_REQUESTS?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                    `/api/adsense/ADS_PER_IMPRESSION?refreshToken=${refreshToken}&clientId=${clientId}&clientSecret=${clientSecret}&accountId=${accountId}&startDate=${start}&endDate=${end}&fullClientSecret=${fullClientSecret}&domainId=${domainId}`,
+                ];
+
+                const responses = await Promise.all(urls.map((url) => fetch(url)));
+                const dataEarnings = await responses[0].json();
+                const dataPageViews = await responses[1].json();
+                const dataClicks = await responses[2].json();
+                const dataPageViewsCtr = await responses[3].json();
+                const dataTotalImpressions = await responses[4].json();
+                const dataPageViewsRpm = await responses[5].json();
+                const dataMatchedAdRequests = await responses[6].json();
+                const dataAdsPerImpression = await responses[7].json();
+
+                const dateRange: string[] = [];
                 let currentDate = dayjs(startDate);
                 while (currentDate.isBefore(dayjs(endDate).add(1, 'day'))) {
                     dateRange.push(currentDate.format('YYYY-MM-DD'));
                     currentDate = currentDate.add(1, 'day');
                 }
 
-                const clicksMap = new Map<string, number>(dataClicks.data.rows.map((row: any) => [row.cells[0].value, Number(row.cells[1].value)]));
-                const earningsMap = new Map<string, number>(dataEarnings.data.rows.map((row: any) => [row.cells[0].value, Number(row.cells[1].value)]));
-                const costPerClickMap = new Map<string, number>(dataCostPerClick.data.rows.map((row: any) => [row.cells[0].value, Number(row.cells[1].value)]));
-                const rpmMap = new Map<string, number>(dataRpm.data.rows.map((row: any) => [row.cells[0].value, Number(row.cells[1].value)]));
+                const mapData = (data: any) => {
+                    return data.data.rows ? new Map<string, number>(data.data.rows.map((row: any) => [row.cells[0].value, Number(row.cells[1].value)])) : new Map<string, number>();
+                };
 
                 const fillData = (map: Map<string, number>, dateRange: string[]): number[] => {
                     return dateRange.map((date) => map.get(date) || 0);
                 };
 
-                setClicksData(fillData(clicksMap, dateRange));
-                setEarningsData(fillData(earningsMap, dateRange));
-                setCostPerClickData(fillData(costPerClickMap, dateRange));
-                setRpmData(fillData(rpmMap, dateRange));
+                setEarningsData(fillData(mapData(dataEarnings), dateRange));
+                setPageViewsData(fillData(mapData(dataPageViews), dateRange));
+                setClicksData(fillData(mapData(dataClicks), dateRange));
+                setPageViewsCtrData(fillData(mapData(dataPageViewsCtr), dateRange));
+                setTotalImpressionsData(fillData(mapData(dataTotalImpressions), dateRange));
+                setPageViewsRpmData(fillData(mapData(dataPageViewsRpm), dateRange));
+                setMatchedAdRequestsData(fillData(mapData(dataMatchedAdRequests), dateRange));
+                setAdsPerImpressionData(fillData(mapData(dataAdsPerImpression), dateRange));
 
                 setError(null);
             } catch (err: any) {
@@ -125,7 +154,7 @@ const ComponentReadAdSenseAnalytics: React.FC<ComponentProps> = ({ startDate, en
         };
 
         fetchAdSenseData();
-    }, [startDate, endDate, isDark]);
+    }, [startDate, endDate, isDark, domainId, token]);
 
     if (error) return <div>Lỗi: {error}</div>;
 
@@ -165,7 +194,7 @@ const ComponentReadAdSenseAnalytics: React.FC<ComponentProps> = ({ startDate, en
         },
     });
 
-    const dates = [];
+    const dates: string[] = [];
     let currentDate = dayjs(startDate);
     while (currentDate.isBefore(dayjs(endDate).add(1, 'day'))) {
         dates.push(currentDate.format('DD-MM'));
@@ -182,93 +211,94 @@ const ComponentReadAdSenseAnalytics: React.FC<ComponentProps> = ({ startDate, en
 
             {!isLoading && (
                 <>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        {/* Card for CLICKS */}
-                        <div className="mt-4 grid grid-cols-1 gap-4">
-                            <div className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
-                                <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-primary"></div>
-                                <h3 className="text-lg font-semibold dark:text-white">{friendlyNames['CLICKS']}</h3>
-                                <p>
-                                    {formatNumber(clicksData.reduce((acc, val) => acc + val, 0))} {units['CLICKS'] || ''}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Card for ESTIMATED EARNINGS */}
-                        <div className="mt-4 grid grid-cols-1 gap-4">
-                            <div className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
-                                <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-primary"></div>
-                                <h3 className="text-lg font-semibold dark:text-white">{friendlyNames['ESTIMATED_EARNINGS']}</h3>
-                                <p>
-                                    {formatNumber(earningsData.reduce((acc, val) => acc + val, 0))} {units['ESTIMATED_EARNINGS'] || ''}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Card for COST PER CLICK */}
-                        <div className="mt-4 grid grid-cols-1 gap-4">
-                            <div className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
-                                <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-primary"></div>
-                                <h3 className="text-lg font-semibold dark:text-white">{friendlyNames['COST_PER_CLICK']}</h3>
-                                <p>
-                                    {formatNumber(costPerClickData.reduce((acc, val) => acc + val, 0))} {units['COST_PER_CLICK'] || ''}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Card for AD REQUESTS RPM */}
-                        <div className="mt-4 grid grid-cols-1 gap-4">
-                            <div className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
-                                <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-primary"></div>
-                                <h3 className="text-lg font-semibold dark:text-white">{friendlyNames['AD_REQUESTS_RPM']}</h3>
-                                <p>
-                                    {formatNumber(rpmData.reduce((acc, val) => acc + val, 0))} {units['AD_REQUESTS_RPM'] || ''}
-                                </p>
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        {Object.keys(friendlyNames).map((key) => {
+                            let value = 0;
+                            switch (key) {
+                                case 'ESTIMATED_EARNINGS':
+                                    value = earningsData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'PAGE_VIEWS':
+                                    value = pageViewsData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'CLICKS':
+                                    value = clicksData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'PAGE_VIEWS_CTR':
+                                    value = pageViewsCtrData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'TOTAL_IMPRESSIONS':
+                                    value = totalImpressionsData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'PAGE_VIEWS_RPM':
+                                    value = pageViewsRpmData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'MATCHED_AD_REQUESTS':
+                                    value = matchedAdRequestsData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                case 'ADS_PER_IMPRESSION':
+                                    value = adsPerImpressionData.reduce((acc, val) => acc + val, 0);
+                                    break;
+                                default:
+                                    return null;
+                            }
+                            return (
+                                <div key={key} className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
+                                    <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-primary"></div>
+                                    <h3 className="text-lg font-semibold dark:text-white">
+                                        {friendlyNames[key].split('(')[0].trim()}
+                                        <span className="block text-sm">({friendlyNames[key].split('(')[1].replace(')', '')})</span>
+                                    </h3>
+                                    <p>
+                                        {formatNumber(value)} {units[key] || ''}
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-                        {/* CLICKS Chart */}
-                        <div className="panel mt-4 h-full xl:col-span-2">
-                            <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
-                                <h5 className="text-lg font-semibold">{friendlyNames['CLICKS']}</h5>
-                            </div>
-                            <ReactApexChart options={chartOptions('Clicks', clicksData, dates)} series={[{ name: friendlyNames['CLICKS'], data: clicksData }]} type="area" height={250} />
-                        </div>
-
-                        {/* ESTIMATED EARNINGS Chart */}
-                        <div className="panel mt-4 h-full xl:col-span-2">
-                            <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
-                                <h5 className="text-lg font-semibold">{friendlyNames['ESTIMATED_EARNINGS']}</h5>
-                            </div>
-                            <ReactApexChart
-                                options={chartOptions('Earnings', earningsData, dates)}
-                                series={[{ name: friendlyNames['ESTIMATED_EARNINGS'], data: earningsData }]}
-                                type="area"
-                                height={250}
-                            />
-                        </div>
-
-                        {/* COST PER CLICK Chart */}
-                        <div className="panel mt-4 h-full xl:col-span-2">
-                            <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
-                                <h5 className="text-lg font-semibold">{friendlyNames['COST_PER_CLICK']}</h5>
-                            </div>
-                            <ReactApexChart
-                                options={chartOptions('CostPerClick', costPerClickData, dates)}
-                                series={[{ name: friendlyNames['COST_PER_CLICK'], data: costPerClickData }]}
-                                type="area"
-                                height={250}
-                            />
-                        </div>
-
-                        {/* AD REQUESTS RPM Chart */}
-                        <div className="panel mt-4 h-full xl:col-span-2">
-                            <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
-                                <h5 className="text-lg font-semibold">{friendlyNames['AD_REQUESTS_RPM']}</h5>
-                            </div>
-                            <ReactApexChart options={chartOptions('Rpm', rpmData, dates)} series={[{ name: friendlyNames['AD_REQUESTS_RPM'], data: rpmData }]} type="area" height={250} />
-                        </div>
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        {Object.keys(friendlyNames).map((key) => {
+                            let data: number[] = [];
+                            switch (key) {
+                                case 'ESTIMATED_EARNINGS':
+                                    data = earningsData;
+                                    break;
+                                case 'PAGE_VIEWS':
+                                    data = pageViewsData;
+                                    break;
+                                case 'CLICKS':
+                                    data = clicksData;
+                                    break;
+                                case 'PAGE_VIEWS_CTR':
+                                    data = pageViewsCtrData;
+                                    break;
+                                case 'TOTAL_IMPRESSIONS':
+                                    data = totalImpressionsData;
+                                    break;
+                                case 'PAGE_VIEWS_RPM':
+                                    data = pageViewsRpmData;
+                                    break;
+                                case 'MATCHED_AD_REQUESTS':
+                                    data = matchedAdRequestsData;
+                                    break;
+                                case 'ADS_PER_IMPRESSION':
+                                    data = adsPerImpressionData;
+                                    break;
+                                default:
+                                    return null;
+                            }
+                            return (
+                                <div key={key} className="panel mt-4 h-full">
+                                    <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
+                                        <h5 className="text-lg font-semibold">
+                                            {friendlyNames[key].split('(')[0].trim()}
+                                            <span className="block text-sm">({friendlyNames[key].split('(')[1].replace(')', '')})</span>
+                                        </h5>
+                                    </div>
+                                    <ReactApexChart options={chartOptions(key, data, dates)} series={[{ name: friendlyNames[key].split('(')[0].trim(), data }]} type="area" height={250} />
+                                </div>
+                            );
+                        })}
                     </div>
                 </>
             )}
