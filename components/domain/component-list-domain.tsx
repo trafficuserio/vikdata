@@ -421,7 +421,13 @@ export default function ComponentListDomain() {
         // },
         {
             accessor: 'person',
-            title: 'Người phụ trách',
+            title: 'Phụ trách',
+            sortable: true,
+            textAlignment: 'left',
+        },
+        {
+            accessor: 'rateIndex',
+            title: 'Index Rate',
             sortable: true,
             textAlignment: 'left',
         },
@@ -443,24 +449,24 @@ export default function ComponentListDomain() {
         //         </span>
         //     ),
         // },
-        {
-            accessor: 'fileKeyword',
-            title: 'Tập tin từ khóa',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ fileKeyword }) => (
-                <a href={fileKeyword} target="_blank" rel="noreferrer" className="block text-blue-500 hover:text-blue-700 max-w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start">
-                    {fileKeyword}
-                </a>
-            ),
-        },
-        {
-            accessor: 'totalLink',
-            title: 'Tổng url',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ totalLink }) => totalLink.toLocaleString(),
-        },
+        // {
+        //     accessor: 'fileKeyword',
+        //     title: 'Tập tin từ khóa',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ fileKeyword }) => (
+        //         <a href={fileKeyword} target="_blank" rel="noreferrer" className="block text-blue-500 hover:text-blue-700 max-w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start">
+        //             {fileKeyword}
+        //         </a>
+        //     ),
+        // },
+        // {
+        //     accessor: 'totalLink',
+        //     title: 'Tổng url',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ totalLink }) => totalLink.toLocaleString(),
+        // },
         // {
         //     accessor: 'timeRegDomain',
         //     title: 'Ngày Reg Domain',
@@ -471,25 +477,29 @@ export default function ComponentListDomain() {
 
         {
             accessor: 'totalPost',
-            title: 'Tổng bài viết',
+            title: 'Tổng bài',
             sortable: true,
             textAlignment: 'left',
-            render: ({ totalPost }) => totalPost.toLocaleString(),
+            render: (record) => (
+                <Link href={`/domain/detail?id=${record.id}`} className="text-blue-500 hover:text-blue-700">
+                    <p>{record.totalPost}</p>
+                </Link>
+            ),
         },
         {
             accessor: 'totalPostPublish',
-            title: 'Bài viết đã đăng',
+            title: 'Bài publish',
             sortable: true,
             textAlignment: 'left',
             render: ({ totalPostPublish }) => totalPostPublish.toLocaleString(),
         },
-        // {
-        //     accessor: 'totalPage',
-        //     title: 'Tổng bài nháp',
-        //     sortable: true,
-        //     textAlignment: 'left',
-        //     render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
-        // },
+        {
+            accessor: 'totalPage',
+            title: 'Tổng draft',
+            sortable: true,
+            textAlignment: 'left',
+            render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
+        },
         // {
         //     accessor: 'totalPagePublish',
         //     title: 'Tổng trang đã xuất bản',
@@ -537,7 +547,7 @@ export default function ComponentListDomain() {
         },
         {
             accessor: 'total_impressions_day',
-            title: 'Lượt hiển thị GSC',
+            title: 'Impressions GSC',
             sortable: true,
             textAlignment: 'left',
             render: ({ domainGoogleConsoles }) => {
@@ -548,70 +558,82 @@ export default function ComponentListDomain() {
             },
         },
         {
-            accessor: 'total_key_ahrerf',
-            title: 'Từ khóa Ahrefs',
+            accessor: 'total_impressions_day',
+            title: 'Keywords SEO',
             sortable: true,
             textAlignment: 'left',
-            render: ({ total_key_ahrerf }) => total_key_ahrerf.toLocaleString(),
         },
         {
-            accessor: 'traffic_ahrerf',
-            title: 'Traffic Ahrefs',
+            accessor: 'total_impressions_day',
+            title: 'Doanh thu ngày',
             sortable: true,
             textAlignment: 'left',
-            render: ({ traffic_ahrerf }) => traffic_ahrerf.toLocaleString(),
         },
-        {
-            accessor: 'total_view',
-            title: 'Virew Adsense',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ inforWeb_dataGoogleAdsenses }) => {
-                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
-                    return inforWeb_dataGoogleAdsenses[0].total_view.toLocaleString();
-                }
-                return '0';
-            },
-        },
-        {
-            accessor: 'total_click',
-            title: 'Click Adsense',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ inforWeb_dataGoogleAdsenses }) => {
-                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
-                    return inforWeb_dataGoogleAdsenses[0].total_click.toLocaleString();
-                }
-                return '0';
-            },
-        },
+        // {
+        //     accessor: 'total_key_ahrerf',
+        //     title: 'Từ khóa Ahrefs',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ total_key_ahrerf }) => total_key_ahrerf.toLocaleString(),
+        // },
+        // {
+        //     accessor: 'traffic_ahrerf',
+        //     title: 'Traffic Ahrefs',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ traffic_ahrerf }) => traffic_ahrerf.toLocaleString(),
+        // },
+        // {
+        //     accessor: 'total_view',
+        //     title: 'Virew Adsense',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ inforWeb_dataGoogleAdsenses }) => {
+        //         if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+        //             return inforWeb_dataGoogleAdsenses[0].total_view.toLocaleString();
+        //         }
+        //         return '0';
+        //     },
+        // },
+        // {
+        //     accessor: 'total_click',
+        //     title: 'Click Adsense',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ inforWeb_dataGoogleAdsenses }) => {
+        //         if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+        //             return inforWeb_dataGoogleAdsenses[0].total_click.toLocaleString();
+        //         }
+        //         return '0';
+        //     },
+        // },
 
-        {
-            accessor: 'total_cpc',
-            title: 'CPC',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ inforWeb_dataGoogleAdsenses }) => {
-                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
-                    return inforWeb_dataGoogleAdsenses[0].total_cpc.toLocaleString();
-                }
-                return '0';
-            },
-        },
-        {
-            accessor: 'ctr',
-            title: 'CTR',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ inforWeb_dataGoogleAdsenses }) => {
-                if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
-                    const { total_click, total_view } = inforWeb_dataGoogleAdsenses[0];
-                    const ctr = total_view > 0 ? ((total_click / total_view) * 100).toFixed(2) : '0.00';
-                    return `${ctr}%`;
-                }
-                return '0.00%';
-            },
-        },
+        // {
+        //     accessor: 'total_cpc',
+        //     title: 'CPC',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ inforWeb_dataGoogleAdsenses }) => {
+        //         if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+        //             return inforWeb_dataGoogleAdsenses[0].total_cpc.toLocaleString();
+        //         }
+        //         return '0';
+        //     },
+        // },
+        // {
+        //     accessor: 'ctr',
+        //     title: 'CTR',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ inforWeb_dataGoogleAdsenses }) => {
+        //         if (inforWeb_dataGoogleAdsenses && inforWeb_dataGoogleAdsenses.length > 0) {
+        //             const { total_click, total_view } = inforWeb_dataGoogleAdsenses[0];
+        //             const ctr = total_view > 0 ? ((total_click / total_view) * 100).toFixed(2) : '0.00';
+        //             return `${ctr}%`;
+        //         }
+        //         return '0.00%';
+        //     },
+        // },
         {
             accessor: 'action',
             title: 'Hành động',
