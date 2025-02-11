@@ -9,7 +9,9 @@ import { useState, useEffect } from 'react';
 import IconUser from '@/components/icon/icon-user';
 import IconCaretsDown from '@/components/icon/icon-carets-down';
 import IconMenuDashboard from '@/components/icon/menu/icon-menu-dashboard';
-
+import IconModelAI from '@/components/icon/icon-model-ai';
+import IconPrompt from '@/components/icon/icon-prompt';
+import IconServer from '@/components/icon/icon-server';
 import IconMenuDomain from '@/components/icon/menu/icon-menu-domain';
 import IconSearchGoogle from '@/components/icon/icon-search-google';
 
@@ -113,14 +115,40 @@ const Sidebar = () => {
                                 </Link>
                             </li>
                             {role === 'admin' && (
-                                <li className="menu nav-item">
-                                    <Link href="/admin" className="nav-link group">
-                                        <div className="flex items-center">
-                                            <IconUser className="shrink-0 group-hover:!text-primary" fill={true} />
-                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Admin</span>
-                                        </div>
-                                    </Link>
-                                </li>
+                                <>
+                                    <li className="menu nav-item">
+                                        <Link href="/admin" className="nav-link group">
+                                            <div className="flex items-center">
+                                                <IconUser className="shrink-0 group-hover:!text-primary" fill={true} />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Admin</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                    <li className="menu nav-item">
+                                        <Link href="/server" className="nav-link group">
+                                            <div className="flex items-center">
+                                                <IconServer className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Server</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                    <li className="menu nav-item">
+                                        <Link href="/ai-model" className="nav-link group">
+                                            <div className="flex items-center">
+                                                <IconModelAI className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">AI Model</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                    <li className="menu nav-item">
+                                        <Link href="/prompt" className="nav-link group">
+                                            <div className="flex items-center">
+                                                <IconPrompt className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Prompt</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                </>
                             )}
                         </ul>
                     </PerfectScrollbar>

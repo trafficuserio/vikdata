@@ -39,35 +39,32 @@ const ComponentsAuthRegisterForm = () => {
         if (!username || !password || !confirm_password) {
             setError('Tài khoản, mật khẩu và xác nhận mật khẩu không được để trống');
             return;
-        }
-        if (!validateEmail(username)) {
+        } else if (!validateEmail(username)) {
             setError('Email không hợp lệ');
             return;
-        }
-        if (password !== confirm_password) {
+        } else if (password !== confirm_password) {
             setError('Mật khẩu và xác nhận mật khẩu không khớp');
             return;
-        }
-        if (!validatePassword(password)) {
-            setError('Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm chữ cái và số');
+        } else if (!validatePassword(password)) {
+            setError('Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm chữ cái và số và ký tự đặc biệt');
             return;
-        }
+        } else {
+            try {
+                const response = await axios.post(process.env.NEXT_PUBLIC_URL_API + '/api/auth-route/register-with-mail', {
+                    userName: username,
+                    password,
+                });
 
-        try {
-            const response = await axios.post(process.env.NEXT_PUBLIC_URL_API + '/api/auth-route/register-with-mail', {
-                userName: username,
-                password,
-            });
-
-            if (response.data.errorcode === 205) {
-                setError('Tài khoản đã tồn tại');
-            } else if (response.data.errorcode === 200) {
-                setSuccess('Đăng kí thành công, liên hệ Admin để kích hoạt tài khoản');
-            } else {
+                if (response.data.errorcode === 205) {
+                    setError('Tài khoản đã tồn tại');
+                } else if (response.data.errorcode === 200) {
+                    setSuccess('Đăng kí thành công, liên hệ Admin để kích hoạt tài khoản');
+                } else {
+                    setError('Đã có lỗi xảy ra');
+                }
+            } catch (err) {
                 setError('Đã có lỗi xảy ra');
             }
-        } catch (err) {
-            setError('Đã có lỗi xảy ra');
         }
     };
 
