@@ -5,8 +5,8 @@ export const metadata: Metadata = {
     title: 'Trang chủ',
 };
 
-const Sales = () => {
+const Home = () => {
     return <div>Trang chủ</div>;
 };
 
-export default Sales;
+export default Home;

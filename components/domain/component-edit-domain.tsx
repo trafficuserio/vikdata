@@ -1,5 +1,3 @@
-// app/components/domain/component-edit-domain.tsx
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -81,15 +79,19 @@ interface DomainData {
     propertyId: string;
     keySearchConsole: KeySearchConsole;
     keyWordpress: string;
+    userAdmin: string;
+    passwordAdmin: string;
+    userAplication: string;
+    passwordAplication: string;
+    refreshTokenAds: string;
+    clientSecretAds: ClientSecretAds;
+    accountIdAds: string;
     status: boolean;
     totalLink: number;
     timeIndex: string;
     timeRegDomain: string;
     fileKeyword: string;
     description?: string | null;
-    refreshTokenAds: string;
-    clientSecretAds: ClientSecretAds;
-    accountIdAds: string;
     totalKeyAhrerf: number;
     trafficAhrerf: number;
 }
@@ -107,6 +109,10 @@ export default function ComponentEditDomain() {
     const [person, setPerson] = useState('');
     const [propertyId, setPropertyId] = useState('');
     const [keyWordpress, setKeyWordpress] = useState('');
+    const [userAdmin, setUserAdmin] = useState('');
+    const [passwordAdmin, setPasswordAdmin] = useState('');
+    const [userAplication, setUserAplication] = useState('');
+    const [passwordAplication, setPasswordAplication] = useState('');
     const [accountIdAds, setAccountIdAds] = useState('');
     const [status, setStatus] = useState(false);
     const [totalLink, setTotalLink] = useState(0);
@@ -116,11 +122,9 @@ export default function ComponentEditDomain() {
     const [description, setDescription] = useState('');
     const [totalKeyAhrerf, setTotalKeyAhrerf] = useState(0);
     const [trafficAhrerf, setTrafficAhrerf] = useState(0);
-
     const [keyAnalyticsJSON, setKeyAnalyticsJSON] = useState('');
     const [keySearchConsoleJSON, setKeySearchConsoleJSON] = useState('');
     const [clientSecretAdsJSON, setClientSecretAdsJSON] = useState('');
-
     const [refreshTokenAds, setRefreshTokenAds] = useState('');
 
     const [loading, setLoading] = useState(true);
@@ -160,6 +164,10 @@ export default function ComponentEditDomain() {
                         propertyId: data.data.property_id,
                         keySearchConsole: JSON.parse(data.data.key_search_console),
                         keyWordpress: data.data.key_wordpress,
+                        userAdmin: data.data.user_admin || '',
+                        passwordAdmin: data.data.password_admin || '',
+                        userAplication: data.data.user_aplication || '',
+                        passwordAplication: data.data.password_aplication || '',
                         refreshTokenAds: data.data.refresh_token_ads,
                         clientSecretAds: JSON.parse(data.data.client_secret_ads),
                         accountIdAds: data.data.account_id_ads || '',
@@ -179,6 +187,10 @@ export default function ComponentEditDomain() {
                     setPerson(item.person);
                     setPropertyId(item.propertyId);
                     setKeyWordpress(item.keyWordpress);
+                    setUserAdmin(item.userAdmin);
+                    setPasswordAdmin(item.passwordAdmin);
+                    setUserAplication(item.userAplication);
+                    setPasswordAplication(item.passwordAplication);
                     setAccountIdAds(item.accountIdAds);
                     setStatus(item.status);
                     setTotalLink(item.totalLink);
@@ -188,7 +200,6 @@ export default function ComponentEditDomain() {
                     setDescription(item.description || '');
                     setTotalKeyAhrerf(item.totalKeyAhrerf);
                     setTrafficAhrerf(item.trafficAhrerf);
-
                     setKeyAnalyticsJSON(JSON.stringify(item.keyAnalytics, null, 2));
                     setKeySearchConsoleJSON(JSON.stringify(item.keySearchConsole, null, 2));
                     setClientSecretAdsJSON(JSON.stringify(item.clientSecretAds, null, 2));
@@ -205,13 +216,24 @@ export default function ComponentEditDomain() {
         }
 
         fetchDomainData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [domainId]);
+    }, [domainId, router, token]);
 
     async function handleSubmit() {
         if (submitting) return;
 
-        if (!domain.trim() || !typeSite.trim() || !groupSite.trim() || !person.trim() || !propertyId.trim() || !keyWordpress.trim() || !fileKeyword.trim()) {
+        if (
+            !domain.trim() ||
+            !typeSite.trim() ||
+            !groupSite.trim() ||
+            !person.trim() ||
+            !propertyId.trim() ||
+            !keyWordpress.trim() ||
+            !userAdmin.trim() ||
+            !passwordAdmin.trim() ||
+            !userAplication.trim() ||
+            !passwordAplication.trim() ||
+            !fileKeyword.trim()
+        ) {
             ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
             return;
         }
@@ -223,14 +245,12 @@ export default function ComponentEditDomain() {
             ShowMessageError({ content: 'Key Analytics không phải là JSON hợp lệ.' });
             return;
         }
-
         try {
             keySearchConsole = JSON.parse(keySearchConsoleJSON);
         } catch (error) {
             ShowMessageError({ content: 'Key Search Console không phải là JSON hợp lệ.' });
             return;
         }
-
         try {
             clientSecretAds = JSON.parse(clientSecretAdsJSON);
         } catch (error) {
@@ -248,6 +268,10 @@ export default function ComponentEditDomain() {
             propertyId,
             keySearchConsole,
             keyWordpress,
+            userAdmin,
+            passwordAdmin,
+            userAplication,
+            passwordAplication,
             refreshTokenAds,
             clientSecretAds: clientSecretAds || {},
             accountIdAds,
@@ -388,7 +412,58 @@ export default function ComponentEditDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-
+                    <div>
+                        <label htmlFor="userAdmin" className="block mb-1 font-medium">
+                            User Admin <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="userAdmin"
+                            type="text"
+                            placeholder="Nhập User Admin..."
+                            value={userAdmin}
+                            onChange={(e) => setUserAdmin(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="passwordAdmin" className="block mb-1 font-medium">
+                            Password Admin <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="passwordAdmin"
+                            type="password"
+                            placeholder="Nhập Password Admin..."
+                            value={passwordAdmin}
+                            onChange={(e) => setPasswordAdmin(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="userAplication" className="block mb-1 font-medium">
+                            User Aplication <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="userAplication"
+                            type="text"
+                            placeholder="Nhập User Aplication..."
+                            value={userAplication}
+                            onChange={(e) => setUserAplication(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="passwordAplication" className="block mb-1 font-medium">
+                            Password Aplication <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="passwordAplication"
+                            type="password"
+                            placeholder="Nhập Password Aplication..."
+                            value={passwordAplication}
+                            onChange={(e) => setPasswordAplication(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
                     <div>
                         <label htmlFor="accountIdAds" className="block mb-1 font-medium">
                             Account ID Ads <span className="text-red-500">*</span>
@@ -460,9 +535,8 @@ export default function ComponentEditDomain() {
                             Trạng thái
                         </label>
                     </div>
-
                     <div>
-                        <label htmlFor="" className="block mb-1 font-medium">
+                        <label htmlFor="totalKeyAhrerf" className="block mb-1 font-medium">
                             Tổng từ khóa Ahref <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -474,9 +548,8 @@ export default function ComponentEditDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-
                     <div>
-                        <label htmlFor="" className="block mb-1 font-medium">
+                        <label htmlFor="trafficAhrerf" className="block mb-1 font-medium">
                             Traffic Ahref <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -488,8 +561,6 @@ export default function ComponentEditDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-
-                    {/* JSON Fields */}
                     <div className="col-span-1 md:col-span-2 lg:col-span-3">
                         <label htmlFor="keyAnalyticsJSON" className="block mb-1 font-medium">
                             Key Analytics (JSON) <span className="text-red-500">*</span>

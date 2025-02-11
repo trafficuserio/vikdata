@@ -39,3 +39,7 @@
 .custom-select-primary .css-13cymwt-control {
     @apply border-[1px] !border-primary !text-primary;
 }
+
+.custom-select .css-16xfy0z-control {
+    @apply border-white-light bg-white hover:border-inherit dark:border-[#17263c] dark:bg-[#121e32];
+}

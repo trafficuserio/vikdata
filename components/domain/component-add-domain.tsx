@@ -1,5 +1,3 @@
-// app/components/domain/component-add-domain.tsx
-
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,13 +31,16 @@ const personOptions = [
 export default function ComponentAddDomain() {
     const router = useRouter();
     const token = Cookies.get('token');
-
     const [domain, setDomain] = useState('');
     const [typeSite, setTypeSite] = useState('');
     const [groupSite, setGroupSite] = useState('');
     const [person, setPerson] = useState('');
     const [propertyId, setPropertyId] = useState('');
     const [keyWordpress, setKeyWordpress] = useState('');
+    const [userAdmin, setUserAdmin] = useState('');
+    const [passwordAdmin, setPasswordAdmin] = useState('');
+    const [userAplication, setUserAplication] = useState('');
+    const [passwordAplication, setPasswordAplication] = useState('');
     const [accountIdAds, setAccountIdAds] = useState('');
     const [status, setStatus] = useState(false);
     const [totalLink, setTotalLink] = useState(0);
@@ -49,19 +50,28 @@ export default function ComponentAddDomain() {
     const [description, setDescription] = useState('');
     const [totalKeyAhrerf, setTotalKeyAhrerf] = useState(0);
     const [trafficAhrerf, setTrafficAhrerf] = useState(0);
-
     const [keyAnalyticsJSON, setKeyAnalyticsJSON] = useState('');
     const [keySearchConsoleJSON, setKeySearchConsoleJSON] = useState('');
     const [clientSecretAdsJSON, setClientSecretAdsJSON] = useState('');
-
     const [refreshTokenAds, setRefreshTokenAds] = useState('');
 
     async function handleSubmit() {
-        if (!domain.trim() || !typeSite.trim() || !groupSite.trim() || !person.trim() || !propertyId.trim() || !keyWordpress.trim() || !fileKeyword.trim()) {
+        if (
+            !domain.trim() ||
+            !typeSite.trim() ||
+            !groupSite.trim() ||
+            !person.trim() ||
+            !propertyId.trim() ||
+            !keyWordpress.trim() ||
+            !fileKeyword.trim() ||
+            !userAdmin.trim() ||
+            !passwordAdmin.trim() ||
+            !userAplication.trim() ||
+            !passwordAplication.trim()
+        ) {
             ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
             return;
         }
-
         let keyAnalytics, keySearchConsole, clientSecretAds;
         try {
             keyAnalytics = JSON.parse(keyAnalyticsJSON);
@@ -69,21 +79,18 @@ export default function ComponentAddDomain() {
             ShowMessageError({ content: 'Key Analytics không phải là JSON hợp lệ.' });
             return;
         }
-
         try {
             keySearchConsole = JSON.parse(keySearchConsoleJSON);
         } catch (error) {
             ShowMessageError({ content: 'Key Search Console không phải là JSON hợp lệ.' });
             return;
         }
-
         try {
             clientSecretAds = JSON.parse(clientSecretAdsJSON);
         } catch (error) {
             ShowMessageError({ content: 'Client Secret Ads không phải là JSON hợp lệ.' });
             return;
         }
-
         const payload = {
             dataDomain: [
                 {
@@ -95,6 +102,10 @@ export default function ComponentAddDomain() {
                     propertyId,
                     keySearchConsole,
                     keyWordpress,
+                    userAdmin,
+                    passwordAdmin,
+                    userAplication,
+                    passwordAplication,
                     status,
                     totalLink: Number(totalLink),
                     timeIndex,
@@ -109,7 +120,6 @@ export default function ComponentAddDomain() {
                 },
             ],
         };
-
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/insert-infor-domain`, {
                 method: 'POST',
@@ -224,7 +234,58 @@ export default function ComponentAddDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-
+                    <div>
+                        <label htmlFor="userAdmin" className="block mb-1 font-medium">
+                            User Admin <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="userAdmin"
+                            type="text"
+                            placeholder="Nhập User Admin..."
+                            value={userAdmin}
+                            onChange={(e) => setUserAdmin(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="passwordAdmin" className="block mb-1 font-medium">
+                            Password Admin <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="passwordAdmin"
+                            type="password"
+                            placeholder="Nhập Password Admin..."
+                            value={passwordAdmin}
+                            onChange={(e) => setPasswordAdmin(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="userAplication" className="block mb-1 font-medium">
+                            User Aplication <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="userAplication"
+                            type="text"
+                            placeholder="Nhập User Aplication..."
+                            value={userAplication}
+                            onChange={(e) => setUserAplication(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="passwordAplication" className="block mb-1 font-medium">
+                            Password Aplication <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="passwordAplication"
+                            type="password"
+                            placeholder="Nhập Password Aplication..."
+                            value={passwordAplication}
+                            onChange={(e) => setPasswordAplication(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
+                        />
+                    </div>
                     <div>
                         <label htmlFor="accountIdAds" className="block mb-1 font-medium">
                             Account ID Ads <span className="text-red-500">*</span>
@@ -296,9 +357,8 @@ export default function ComponentAddDomain() {
                             Trạng thái
                         </label>
                     </div>
-
                     <div>
-                        <label htmlFor="" className="block mb-1 font-medium">
+                        <label htmlFor="totalKeyAhrerf" className="block mb-1 font-medium">
                             Tổng từ khóa Ahref <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -310,9 +370,8 @@ export default function ComponentAddDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-
                     <div>
-                        <label htmlFor="" className="block mb-1 font-medium">
+                        <label htmlFor="trafficAhrerf" className="block mb-1 font-medium">
                             Traffic Ahref <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -324,8 +383,6 @@ export default function ComponentAddDomain() {
                             className="w-full border p-2 rounded form-input"
                         />
                     </div>
-
-                    {/* JSON Fields */}
                     <div className="col-span-1 md:col-span-2 lg:col-span-3">
                         <label htmlFor="keyAnalyticsJSON" className="block mb-1 font-medium">
                             Key Analytics (JSON) <span className="text-red-500">*</span>
@@ -365,8 +422,6 @@ export default function ComponentAddDomain() {
                             rows={6}
                         ></textarea>
                     </div>
-
-                    {/* Missing Required Fields */}
                     <div>
                         <label htmlFor="refreshTokenAds" className="block mb-1 font-medium">
                             Refresh Token Ads <span className="text-red-500">*</span>
@@ -388,7 +443,7 @@ export default function ComponentAddDomain() {
                     <textarea
                         id="description"
                         placeholder="Thêm mô tả..."
-                        value={description || ''}
+                        value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         className="w-full border p-2 rounded form-textarea"
                         rows={4}
