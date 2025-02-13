@@ -113,7 +113,6 @@ export default function AIModel() {
                                     tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                 } -mb-[1px] flex items-center border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                             >
-                                {' '}
                                 Model AI
                             </button>
                         )}
@@ -125,7 +124,6 @@ export default function AIModel() {
                                     tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                 } -mb-[1px] flex items-center border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                             >
-                                {' '}
                                 Type AI
                             </button>
                         )}
