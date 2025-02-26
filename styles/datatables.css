@@ -76,6 +76,11 @@ table tr .mantine-Checkbox-root {
 .mantine-Table-root th.text-right .mantine-Group-root {
     @apply !justify-end;
 }
+
+.mantine-Modal-modal {
+    @apply dark:!bg-[#314668] dark:!border-[#191e3a] dark:text-white-dark;
+}
+
 .datatables .mantine-Group-root[role='navigation'] {
     @apply flex-auto justify-end gap-1;
 }

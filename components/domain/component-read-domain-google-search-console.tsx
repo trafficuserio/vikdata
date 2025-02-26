@@ -1,3 +1,4 @@
+// component-read-domain-google-search-console.tsx
 'use client';
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
