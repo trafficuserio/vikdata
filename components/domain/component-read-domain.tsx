@@ -166,36 +166,11 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
-                                    <IconInfo className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block">Thông tin</p>
+                                    <IconAnalytics className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Analytics</p>
                                 </button>
                             )}
                         </Tab>
-                        <Tab as={Fragment}>
-                            {(tabProps) => (
-                                <button
-                                    className={`${
-                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
-                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
-                                >
-                                    <IconKeyword className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block">Danh sách từ khóa</p>
-                                </button>
-                            )}
-                        </Tab>
-                        <Tab as={Fragment}>
-                            {(tabProps) => (
-                                <button
-                                    className={`${
-                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
-                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
-                                >
-                                    <IconRank className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block">Xếp hạng từ khóa</p>
-                                </button>
-                            )}
-                        </Tab>
-
                         <Tab as={Fragment}>
                             {(tabProps) => (
                                 <button
@@ -215,8 +190,8 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
-                                    <IconAnalytics className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block">Analytics</p>
+                                    <IconAdSense className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Adsense</p>
                                 </button>
                             )}
                         </Tab>
@@ -227,8 +202,20 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
-                                    <IconAdSense className="h-5 w-5" />
-                                    <p className="ml-2 hidden md:block">Adsense</p>
+                                    <IconKeyword className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Từ khóa</p>
+                                </button>
+                            )}
+                        </Tab>
+                        <Tab as={Fragment}>
+                            {(tabProps) => (
+                                <button
+                                    className={`${
+                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
+                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
+                                >
+                                    <IconInfo className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Thông tin</p>
                                 </button>
                             )}
                         </Tab>
@@ -295,23 +282,24 @@ const ComponentsStatistical = () => {
                 </Tab.List>
                 <Tab.Panels>
                     <Tab.Panel>
-                        <ComponentReadDomainInfo />
-                    </Tab.Panel>
-                    <Tab.Panel>
-                        <ComponentListKeyword />
-                    </Tab.Panel>
-                    <Tab.Panel>
-                        <ComponentReadDomainRankKey startDate={startDate} endDate={endDate} />
-                    </Tab.Panel>
-                    <Tab.Panel>
-                        <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />
-                    </Tab.Panel>
-                    <Tab.Panel>
                         <ComponentReadDomainAnalytics startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentReadDomainAdsense startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
+                    <Tab.Panel>
+                        <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />
+                    </Tab.Panel>
+                    <Tab.Panel>
+                        <ComponentListKeyword />
+                    </Tab.Panel>
+                    <Tab.Panel>
+                        <ComponentReadDomainInfo />
+                    </Tab.Panel>
+
+                    {/* <Tab.Panel>
+                        <ComponentReadDomainRankKey startDate={startDate} endDate={endDate} />
+                    </Tab.Panel> */}
                 </Tab.Panels>
             </Tab.Group>
         </>

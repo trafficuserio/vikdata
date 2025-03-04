@@ -27,6 +27,12 @@ export default function ComponentListAccount() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
     const [search, setSearch] = useState('');
+
+    const [userName, setUserName] = useState('');
+    const [password, setPassword] = useState('');
+
+    const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+
     const [sortStatus, setSortStatus] = useState<{
         columnAccessor: keyof AccountData;
         direction: 'asc' | 'desc';
@@ -334,34 +340,68 @@ export default function ComponentListAccount() {
             accessor: 'isBlocked',
             title: 'Trạng thái',
             textAlignment: 'center',
-            render: (row) => (
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${row.isBlocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                    {row.isBlocked ? 'Blocked' : 'Active'}
-                </span>
-            ),
+            render: (row) => <span className={`text-sm badge ${row.isBlocked ? 'badge-outline-danger' : 'badge-outline-success'} `}>{row.isBlocked ? 'Đã khóa' : 'Hoạt động'}</span>,
         },
         {
             accessor: 'id',
             title: 'Hành động',
             textAlignment: 'center',
             render: (row) => (
-                <div className="flex justify-center gap-2">
+                <div className="justify-center flex flex-col gap-1">
+                    <button className="hover:underline">Chi tiết</button>
                     {row.isBlocked ? (
-                        <button onClick={() => handleUnblockSingle(row.id)} className="btn btn-warning text-xs" title="Mở khóa tài khoản">
+                        <button onClick={() => handleUnblockSingle(row.id)} className="hover:underline" title="Mở khóa tài khoản">
                             Mở khóa
                         </button>
                     ) : (
-                        <button onClick={() => handleBlockSingle(row.id)} className="btn btn-danger text-xs" title="Khóa tài khoản">
-                            Khóa
+                        <button onClick={() => handleBlockSingle(row.id)} className="hover:underline" title="Khóa tài khoản">
+                            Khoá tài khoản
                         </button>
                     )}
-                    <button onClick={() => handleUpdateExpiredDateSingle(row.id)} className="btn btn-info text-xs" title="Cập nhật ngày hết hạn">
+                    <button onClick={() => handleUpdateExpiredDateSingle(row.id)} className="hover:underline" title="Cập nhật ngày hết hạn">
                         Gia hạn
                     </button>
                 </div>
             ),
         },
     ];
+
+    async function handleSubmit() {
+        if (!userName || !password) {
+            ShowMessageError({ content: 'Vui lòng nhập đủ userName và password' });
+            return;
+        }
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/admin/insert-account`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ userName, password }),
+            });
+            const data = await res.json();
+
+            if ([401, 403].includes(data?.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout(router);
+                return;
+            }
+
+            if (data?.errorcode === 200) {
+                ShowMessageSuccess({ content: 'Thêm tài khoản thành công' });
+                setShowAddAccountModal(false); // Đóng modal
+                setUserName('');
+                setPassword('');
+                fetchData(); // Cập nhật danh sách
+            } else {
+                ShowMessageError({ content: data?.message || 'Không thể thêm tài khoản' });
+            }
+        } catch (error) {
+            ShowMessageError({ content: 'Lỗi khi thêm tài khoản' });
+        }
+    }
 
     return (
         <>
@@ -419,12 +459,36 @@ export default function ComponentListAccount() {
                 </div>
             )}
 
+            {showAddAccountModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-4 rounded shadow-md w-[400px] dark:bg-black dark:text-white">
+                        <h2 className="text-lg font-semibold mb-2">Thêm tài khoản</h2>
+                        <div className="mb-4">
+                            <label className="block mb-1">Tên đăng nhập</label>
+                            <input className="border p-2 rounded w-full form-input" placeholder="Nhập tài khoản..." value={userName} onChange={(e) => setUserName(e.target.value)} />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-1">Mật khẩu</label>
+                            <input className="border p-2 rounded w-full form-input" type="password" placeholder="Nhập mật khẩu..." value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setShowAddAccountModal(false)} className="btn btn-outline-danger">
+                                Hủy
+                            </button>
+                            <button onClick={handleSubmit} className="btn btn-primary">
+                                Tạo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="p-4">
                 <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
                     <div className="invoice-table">
                         <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center justify-between">
                             <div className="flex gap-2">
-                                <button onClick={() => router.push('/admin/add')} className="btn btn-primary">
+                                <button onClick={() => setShowAddAccountModal(true)} className="btn btn-primary">
                                     Thêm Tài Khoản
                                 </button>
                                 <button onClick={handleBlockAccounts} className="btn btn-danger">

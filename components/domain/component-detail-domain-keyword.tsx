@@ -8,10 +8,13 @@ import { ShowMessageError } from '@/components/component-show-message';
 import logout from '@/utils/logout';
 import axios from 'axios';
 import IconUpload from '@/components/icon/icon-upload';
+import IconTrash from '@/components/icon/icon-trash';
 import { Modal, Tooltip } from '@mantine/core';
 import Dropdown from '@/components/dropdown';
 import 'tippy.js/dist/tippy.css';
 import 'flatpickr/dist/flatpickr.css';
+import withReactContent from 'sweetalert2-react-content';
+import Swal from 'sweetalert2';
 
 interface ServerStatus {
     id: number;
@@ -34,7 +37,8 @@ export default function DomainDetailKeyword() {
     const [openModal, setOpenModal] = useState<boolean>(false);
     const [currentStep, setCurrentStep] = useState<number>(1);
     const [uniqueSites, setUniqueSites] = useState<string[]>([]);
-    const [sitePrompts, setSitePrompts] = useState<{ [key: string]: string }>({});
+    const [sitePrompts, setSitePrompts] = useState<{ [key: string]: number }>({});
+    const [promptList, setPromptList] = useState<any[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [page, setPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(10);
@@ -44,19 +48,53 @@ export default function DomainDetailKeyword() {
     const [modalPage, setModalPage] = useState<number>(1);
     const [modalPageSize, setModalPageSize] = useState<number>(10);
     const MODAL_PAGE_SIZES = [10, 20, 50, 100];
-    const PROMPT_OPTIONS = ['1', '2', '3', '4'];
     const [serverData, setServerData] = useState<ServerStatus[]>([]);
     const [activeServer, setActiveServer] = useState<ServerStatus | null>(null);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
-    const isRtl = false;
     const [isServerRunning, setIsServerRunning] = useState<boolean>(false);
     const [progressPercentage, setProgressPercentage] = useState<number>(0);
-
-    const isDomainExpired = (timeRegDomain: any) => false;
-
+    const isRtl = false;
     const filteredAndSortedRecords = data;
     const paginatedRecords = filteredAndSortedRecords.slice((page - 1) * pageSize, page * pageSize);
+    const [syncStartTime, setSyncStartTime] = useState<Date | null>(null);
+    const MySwal = withReactContent(Swal);
+    const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    const typeSiteMapping: { [key: string]: string } = {
+        'Tất cả': 'tatca',
+        'Hình ảnh': 'images',
+        'Hướng dẫn': 'huongdan',
+        'Tổng hợp': 'tonghop',
+        'Học thuật': 'hocthuat',
+        Toplist: 'toplist',
+        'Bán hàng': 'product',
+    };
+    const displayMapping: { [key: string]: string } = {
+        tatca: 'Tất cả',
+        images: 'Hình ảnh',
+        huongdan: 'Hướng dẫn',
+        tonghop: 'Tổng hợp',
+        hocthuat: 'Học thuật',
+        toplist: 'Toplist',
+        product: 'Bán hàng',
+    };
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const animateProgress = (start: number, end: number) => {
+        return new Promise<void>((resolve) => {
+            const steps = 20;
+            const stepTime = 15;
+            let currentStep = 0;
+            const intervalId = setInterval(() => {
+                currentStep++;
+                const newProgress = start + ((end - start) * currentStep) / steps;
+                setProgressPercentage(newProgress);
+                if (currentStep === steps) {
+                    clearInterval(intervalId);
+                    resolve();
+                }
+            }, stepTime);
+        });
+    };
     useEffect(() => {
         if (domainId && token) {
             axios
@@ -77,23 +115,32 @@ export default function DomainDetailKeyword() {
                 .catch(() => {});
         }
     }, [domainId, token]);
-
     useEffect(() => {
-        if (domainInfo?.domain && importedExcelData.length === 0) {
+        if (domainInfo?.domain) {
             const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
             axios
-                .get(apiUrl, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } })
+                .get(apiUrl, {
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                })
                 .then((response) => {
-                    setData(response.data);
-                    setImportedExcelData(response.data);
-                    setIsImported(true);
+                    const resData = response.data;
+                    if (!resData) {
+                        setData([]);
+                        setImportedExcelData([]);
+                        setIsImported(false);
+                    } else {
+                        setData(resData);
+                        setImportedExcelData(resData);
+                        setIsImported(true);
+                    }
                 })
                 .catch((error) => {
                     console.error('Error fetching data:', error);
+                    setImportedExcelData([]);
+                    setIsImported(false);
                 });
         }
-    }, [domainInfo?.domain, importedExcelData, token]);
-
+    }, [domainInfo?.domain, token]);
     useEffect(() => {
         if (domainInfo?.domain) {
             axios
@@ -115,7 +162,7 @@ export default function DomainDetailKeyword() {
                             domain_id: server.domain_id,
                         };
                         return axios
-                            .get(`http://${serverUrl}/api/site/status`, {
+                            .get(`${serverUrl}/api/site/status`, {
                                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                                 timeout: 3000,
                             })
@@ -129,7 +176,7 @@ export default function DomainDetailKeyword() {
                     });
                     Promise.all(serverStatusPromises).then((updatedServers) => {
                         setServerData(updatedServers);
-                        const syncingServer = updatedServers.find((s) => s.is_running && s.domain_id === Number(domainId));
+                        const syncingServer = updatedServers.find((s) => s.is_running && Number(s.domain_id) === Number(domainInfo.id));
                         if (syncingServer) {
                             setActiveServer(syncingServer);
                             setIsServerRunning(true);
@@ -142,12 +189,36 @@ export default function DomainDetailKeyword() {
                 })
                 .catch((err) => console.error(err));
         }
-    }, [domainInfo, domainId, token]);
-
+    }, [domainInfo, token]);
+    useEffect(() => {
+        if (domainInfo && token && isServerRunning) {
+            refreshIntervalRef.current = setInterval(() => {
+                refreshData();
+            }, 10000);
+            return () => {
+                if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+            };
+        }
+    }, [domainInfo, token, isServerRunning]);
+    useEffect(() => {
+        axios
+            .get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-list-prompt`, {
+                params: { page: 1, limit: 100 },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            })
+            .then((response) => {
+                const json = response.data;
+                if (json.errorcode === 200) {
+                    setPromptList(json.data.dataPrompt || []);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching prompt list:', error);
+            });
+    }, [token]);
     const handleImportFileExcel = () => {
         fileInputRef.current?.click();
     };
-
     const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -159,7 +230,6 @@ export default function DomainDetailKeyword() {
             const sheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
             setImportedExcelData(jsonData);
-            setIsImported(true);
             setModalPage(1);
             setModalPageSize(10);
             setCurrentStep(1);
@@ -167,212 +237,12 @@ export default function DomainDetailKeyword() {
             const sites = jsonData.map((item: any) => item.Site).filter(Boolean);
             const unique = Array.from(new Set(sites));
             setUniqueSites(unique);
-            const initialPrompts: { [key: string]: string } = {};
-            unique.forEach((site) => {
-                initialPrompts[site] = PROMPT_OPTIONS[0];
-            });
-            setSitePrompts(initialPrompts);
             if (fileInputRef.current) fileInputRef.current.value = '';
         };
         reader.readAsBinaryString(file);
     };
-
-    const mainColumns = isImported
-        ? [
-              {
-                  accessor: 'primary_key',
-                  title: 'Từ khoá chính',
-                  sortable: true,
-                  textAlignment: 'left' as DataTableColumnTextAlignment,
-              },
-              {
-                  accessor: 'secondary_key',
-                  title: 'Từ khoá phụ',
-                  sortable: true,
-                  textAlignment: 'left' as DataTableColumnTextAlignment,
-                  render: (row: any) => (
-                      <Tooltip
-                          label={row.secondary_key}
-                          position="top"
-                          withArrow
-                          transition="fade"
-                          transitionDuration={100}
-                          className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start"
-                      >
-                          <div>{row.secondary_key}</div>
-                      </Tooltip>
-                  ),
-              },
-              {
-                  accessor: 'h1',
-                  title: 'H1',
-                  sortable: true,
-                  textAlignment: 'left' as DataTableColumnTextAlignment,
-                  render: (row: any) => (
-                      <Tooltip label={row.h1} position="top" withArrow transition="fade" transitionDuration={100} className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start">
-                          <div>{row.h1}</div>
-                      </Tooltip>
-                  ),
-              },
-              {
-                  accessor: 'description',
-                  title: 'Description',
-                  sortable: true,
-                  textAlignment: 'left' as DataTableColumnTextAlignment,
-                  render: (row: any) => (
-                      <Tooltip label={row.description} position="top" withArrow transition="fade" transitionDuration={100} className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start">
-                          <div>{row.description}</div>
-                      </Tooltip>
-                  ),
-              },
-              {
-                  accessor: 'url',
-                  title: 'URL',
-                  sortable: true,
-                  textAlignment: 'left' as DataTableColumnTextAlignment,
-                  render: (row: any) => (
-                      <a href={row.url} target="_blank" rel="noreferrer">
-                          <Tooltip label={row.url} position="top" withArrow transition="fade" transitionDuration={100} className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start">
-                              <div>{row.url}</div>
-                          </Tooltip>
-                      </a>
-                  ),
-              },
-              {
-                  accessor: 'is_done',
-                  title: 'Trạng thái',
-                  sortable: true,
-                  textAlignment: 'left' as DataTableColumnTextAlignment,
-                  render: (row: any) => <span className={`text-sm badge ${row.is_done != 0 ? 'badge-outline-success' : 'badge-outline-warning'}`}>{row.is_done != 0 ? 'Đã viết' : 'Chưa viết'}</span>,
-              },
-              {
-                  accessor: 'action',
-                  title: 'Hành động',
-                  textAlignment: 'center' as DataTableColumnTextAlignment,
-                  render: (row: any) =>
-                      row.is_done != 0 ? (
-                          <div className="flex items-center justify-center gap-2">
-                              <p className="text-primary hover:underline cursor-pointer">Viết lại</p>
-                          </div>
-                      ) : null,
-              },
-          ]
-        : null;
-
-    const excelColumns = [
-        {
-            accessor: 'Từ khoá chính',
-            title: 'Từ khoá chính',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Name Uppercase',
-            title: 'Name Uppercase',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Từ khóa phụ',
-            title: 'Từ khóa phụ',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'url',
-            title: 'URL',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-            render: (row: any) => (
-                <a href={row.url} target="_blank" rel="noreferrer">
-                    {row.url}
-                </a>
-            ),
-        },
-        {
-            accessor: 'Category',
-            title: 'Category',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Tags',
-            title: 'Tags',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Status',
-            title: 'Status',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Home Keywords',
-            title: 'Home Keywords',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Category Keywords',
-            title: 'Category Keywords',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Category Name',
-            title: 'Category Name',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Giá',
-            title: 'Giá',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'SKU',
-            title: 'SKU',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'Source',
-            title: 'Source',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-        {
-            accessor: 'id_prompt',
-            title: 'id_prompt',
-            sortable: true,
-            textAlignment: 'left' as DataTableColumnTextAlignment,
-        },
-    ];
-
-    const handleNextStep = () => {
-        if (currentStep === 1) {
-            setCurrentStep(2);
-        } else {
-            setOpenModal(false);
-        }
-    };
-
-    const handleBackStep = () => {
-        if (currentStep > 1) {
-            setCurrentStep(currentStep - 1);
-        } else {
-            setOpenModal(false);
-        }
-    };
-
-    const handlePromptChange = (site: string, value: string) => {
-        setSitePrompts((prev) => ({ ...prev, [site]: value }));
-    };
-
     const renderProgressBar = () => (
-        <div className="flex flex-row items-center gap-2 w-[400px] max-auto justify-center">
+        <div className="flex flex-row items-center gap-2 w-[400px] mx-auto justify-center">
             <div className="text-center text-lg font-semibold text-primary">{progressPercentage.toFixed(0)}%</div>
             <div className="w-full max-w-md relative">
                 <div
@@ -388,29 +258,55 @@ export default function DomainDetailKeyword() {
         </div>
     );
 
+    const renderStepBar = () => {
+        return (
+            <div className="w-full mb-8">
+                <div className="flex items-center justify-center">
+                    <div className="relative">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-primary text-white' : 'bg-[#E0E0E7] text-black'}`}>1</div>
+                        <span className="text-sm absolute top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-black dark:text-white">Import Excel</span>
+                    </div>
+                    <div className={`flex-1 max-w-40 h-1 ${currentStep >= 2 ? 'bg-primary' : 'bg-[#E0E0E7]'}`}></div>
+                    <div className="relative">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-primary text-white' : 'bg-[#E0E0E7] text-black'}`}>2</div>
+                        <span className="text-sm absolute top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-black dark:text-white">Chọn Prompt</span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
     const refreshData = async () => {
         if (!domainInfo) return;
         const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
-        await axios
-            .get(apiUrl, {
+        try {
+            const response = await axios.get(apiUrl, {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            })
-            .then((response) => {
-                setData(response.data);
-                const total = response.data.length;
-                const done = response.data.filter((row: any) => row.is_done != 0).length;
-                const progress = total ? (done / total) * 100 : 0;
-                setProgressPercentage(progress);
-            })
-            .catch((error) => {
-                console.error('Error fetching data:', error);
             });
-        await axios
-            .get(`${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/get-server-infors`, {
-                params: { limit: 100, offset: 0, byOder: 'ASC' },
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            })
-            .then((response) => {
+            const newData = response.data;
+            if (newData) {
+                const rowsIsDoing = newData.filter((row: any) => row.processing == 'is_doing');
+                const total = rowsIsDoing.length;
+                const completed = rowsIsDoing.filter((row: any) => row.is_done == 1).length;
+                const progress = total > 0 ? (completed / total) * 100 : 0;
+                setProgressPercentage(progress);
+
+                if (progress >= 100 && refreshIntervalRef.current) {
+                    clearInterval(refreshIntervalRef.current);
+                    refreshIntervalRef.current = null;
+                }
+                setData(newData);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            setData([]);
+            setImportedExcelData([]);
+        }
+        if (isServerRunning) {
+            try {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/get-server-infors`, {
+                    params: { limit: 100, offset: 0, byOder: 'ASC' },
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                });
                 const servers = response.data.data || [];
                 const serverStatusPromises = servers.map((server: any) => {
                     const serverUrl = server.domain_server;
@@ -424,7 +320,7 @@ export default function DomainDetailKeyword() {
                         domain_id: server.domain_id,
                     };
                     return axios
-                        .get(`http://${serverUrl}/api/site/status`, {
+                        .get(`${serverUrl}/api/site/status`, {
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                             timeout: 3000,
                         })
@@ -438,8 +334,7 @@ export default function DomainDetailKeyword() {
                 });
                 Promise.all(serverStatusPromises).then((updatedServers) => {
                     setServerData(updatedServers);
-                    const currentDomainId = Number(domainInfo.id);
-                    const syncingServer = updatedServers.find((s) => s.is_running && s.domain_id !== null && s.domain_id === currentDomainId);
+                    const syncingServer = updatedServers.find((s) => s.is_running && Number(s.domain_id) === Number(domainInfo.id));
                     if (syncingServer) {
                         setActiveServer(syncingServer);
                         setIsServerRunning(true);
@@ -449,13 +344,18 @@ export default function DomainDetailKeyword() {
                         setIsSyncing(false);
                     }
                 });
-            })
-            .catch((err) => console.error(err));
+            } catch (err) {
+                console.error(err);
+            }
+        }
     };
-
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
         setOpenModal(false);
+        setProgressPercentage(0);
+        setIsServerRunning(true);
+        setIsImported(true);
+        setSyncStartTime(new Date());
         const exportData = importedExcelData.map((row: any) => ({
             'Từ khoá chính': row['Từ khoá chính'] || '',
             'Name Uppercase': row['Name Uppercase'] || '',
@@ -470,33 +370,21 @@ export default function DomainDetailKeyword() {
             Giá: row['Giá'] || '',
             SKU: row['SKU'] || '',
             Source: row['Source'] || '',
-            id_prompt: sitePrompts[row['Site']] || '',
+            id_prompt: row['Site'] && sitePrompts[row['Site']] ? sitePrompts[row['Site']] : '',
         }));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportData), 'Sheet1');
         const xlsxBlob = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        if (!xlsxBlob) return;
-        const file = new File([xlsxBlob], 'export.xlsx', {
+        const file = new File([xlsxBlob], `export.xlsx`, {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         });
         const formData = new FormData();
         formData.append('file', file);
         formData.append('region', 'en-US');
-        const typeSiteMapping: { [key: string]: string } = {
-            'Tất cả': 'tatca',
-            'Hình Ảnh': 'images',
-            'Hướng dẫn': 'huongdan',
-            'Tổng hợp': 'tonghop',
-            'Học thuật': 'hocthuat',
-            Toplist: 'toplist',
-            'Bán hàng': 'product',
-        };
-        const typeSite = typeSiteMapping[domainInfo.group_site] || '';
-        formData.append('type_site', typeSite);
-        const isCrawling = domainInfo.group_site === 'Hình Ảnh' ? 'True' : 'True';
+        const isCrawling = domainInfo.group_site === 'Hình ảnh' ? 'True' : 'True';
         formData.append('is_crawling', isCrawling);
         formData.append('url', 'https://' + domainInfo.domain);
-        formData.append('max_workers', '4');
+        formData.append('max_workers', '1');
         formData.append('username', domainInfo.user_aplication);
         formData.append('password', domainInfo.password_aplication);
         const availableServer = activeServer
@@ -509,54 +397,165 @@ export default function DomainDetailKeyword() {
             try {
                 await axios.post(
                     `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
-                    {
-                        serverId: availableServer.id,
-                        domainId: domainInfo.id,
-                    },
-                    {
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    },
+                    { serverId: availableServer.id, domainId: domainInfo.id },
+                    { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
                 );
                 formData.append('serverId', String(availableServer.id));
                 formData.append('domainId', String(domainInfo.id));
                 formData.append('currentAPI', process.env.NEXT_PUBLIC_URL_API || '');
-                await axios.post(`http://${availableServer.url}/api/site`, formData, {
+                await axios.post(`${availableServer.url}/api/site`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
                 });
-                setIsSyncing(true);
-                setIsServerRunning(true);
-                setImportedExcelData([]);
-                setData([]);
-                await refreshData();
             } catch (error) {
                 console.error('Lỗi khi đồng bộ dữ liệu:', error);
             }
         }
+        await animateProgress(0, 100);
+        setIsSyncing(true);
+        setImportedExcelData([]);
+        setData([]);
+        if (!isServerRunning) setProgressPercentage(0);
     };
-
-    const handleStop = async () => {
-        if (!activeServer || !domainInfo) return;
+    const handleRewrite = async (row: any) => {
+        if (!domainInfo || isSyncing) return;
+        setIsServerRunning(true);
+        setProgressPercentage(0);
+        const typeSite = typeSiteMapping[domainInfo.group_site] || '';
+        const availableServer = activeServer
+            ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
+            : serverData.find((item) => !item.is_running && !item.timedOut);
+        if (!activeServer && availableServer) {
+            setActiveServer(availableServer);
+        }
+        const payload = {
+            post_data: [{ post_id: row.post_id, primary_key: row.primary_key }],
+            username: domainInfo.user_aplication,
+            password: domainInfo.password_aplication,
+            url: 'https://' + domainInfo.domain,
+            max_workers: 4,
+            type_site: typeSite,
+            region: 'en-US',
+            is_cloud: 'False',
+            is_crawling: 'True',
+            serverId: availableServer ? String(availableServer.id) : '',
+            domainId: String(domainInfo.id),
+            currentAPI: process.env.NEXT_PUBLIC_URL_API || '',
+        };
+        if (availableServer) {
+            try {
+                await axios.post(
+                    `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
+                    { serverId: availableServer.id, domainId: domainInfo.id },
+                    { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
+                );
+                await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+                await animateProgress(progressPercentage, 100);
+            } catch (error) {
+                console.error('Lỗi khi thực hiện rewrite:', error);
+            }
+        } else {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+        }
+        setIsSyncing(true);
+    };
+    const handleRewriteSelected = async () => {
+        if (!domainInfo || isSyncing || selectedRecords.length === 0) return;
+        setIsServerRunning(true);
+        const total = selectedRecords.length;
+        setProgressPercentage(0);
+        let currentProg = 0;
+        for (let i = 0; i < total; i++) {
+            const row = selectedRecords[i];
+            const typeSite = typeSiteMapping[domainInfo.group_site] || '';
+            const availableServer = activeServer
+                ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
+                : serverData.find((item) => !item.is_running && !item.timedOut);
+            if (!activeServer && availableServer) {
+                setActiveServer(availableServer);
+            }
+            const payload = {
+                post_data: [{ post_id: row.post_id, primary_key: row.primary_key }],
+                username: domainInfo.user_aplication,
+                password: domainInfo.password_aplication,
+                url: 'https://' + domainInfo.domain,
+                max_workers: 4,
+                type_site: typeSite,
+                region: 'en-US',
+                is_cloud: 'False',
+                is_crawling: 'True',
+                serverId: availableServer ? String(availableServer.id) : '',
+                domainId: String(domainInfo.id),
+                currentAPI: process.env.NEXT_PUBLIC_URL_API || '',
+            };
+            if (availableServer) {
+                try {
+                    await axios.post(
+                        `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
+                        { serverId: availableServer.id, domainId: domainInfo.id },
+                        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
+                    );
+                    await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+                } catch (error) {
+                    console.error('Lỗi khi thực hiện rewrite:', error);
+                }
+            } else {
+                ShowMessageError({ content: 'Không có server nào được chọn' });
+            }
+            const newProg = Math.round(((i + 1) / total) * 100);
+            await animateProgress(currentProg, newProg);
+            currentProg = newProg;
+        }
+        setIsSyncing(true);
+    };
+    const handleDeleteTempData = async (serverUrl: string) => {
+        if (!domainInfo?.domain || !token) return;
+        if (!serverUrl) {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+            return;
+        }
+        const result = await MySwal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc chắn muốn xóa dữ liệu không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy',
+        });
+        if (!result.isConfirmed) {
+            return;
+        }
         try {
-            await axios.post(`http://${activeServer.url}/api/site/stop`, null, {
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                timeout: 3000,
-            });
             await axios.post(
-                `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-unactive`,
+                `${serverUrl}/api/site/delete`,
                 {
-                    serverId: activeServer.id,
-                    domainId: domainInfo.id,
+                    url: `https://${domainInfo.domain}`,
+                    username: domainInfo.user_aplication,
+                    password: domainInfo.password_aplication,
                 },
                 {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 },
             );
-            setIsSyncing(false);
-            setIsServerRunning(false);
-            await refreshData();
+            setServerData((prev) => prev.map((item) => (item.url === serverUrl ? { ...item, has_temp: undefined } : item)));
+            setData([]);
+            MySwal.fire({
+                title: 'Thành công',
+                text: 'Dữ liệu tạm đã được xóa.',
+                icon: 'success',
+                confirmButtonText: 'Đóng',
+            });
         } catch (error) {
-            console.error('Lỗi khi dừng đồng bộ:', error);
+            console.error('Error deleting temp data:', error);
+            MySwal.fire({
+                title: 'Lỗi',
+                text: 'Xảy ra lỗi khi xóa dữ liệu tạm.',
+                icon: 'error',
+                confirmButtonText: 'Đóng',
+            });
         }
+    };
+    const handleSelectPrompt = (site: string, promptId: number) => {
+        setSitePrompts((prev) => ({ ...prev, [site]: promptId }));
     };
 
     return (
@@ -565,6 +564,17 @@ export default function DomainDetailKeyword() {
                 <div className="flex items-center gap-2 justify-between w-full mt-2">
                     <p className="text-lg font-semibold">Danh sách từ khoá đã viết bài</p>
                     <div className="flex gap-2">
+                        <button
+                            disabled={isServerRunning}
+                            type="button"
+                            className={`btn gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-danger'}`}
+                            onClick={() => handleDeleteTempData(activeServer?.url || '')}
+                        >
+                            <p className="whitespace-nowrap flex items-center gap-2">
+                                <IconTrash />
+                                Xóa dữ liệu cũ
+                            </p>
+                        </button>
                         <div className="dropdown">
                             <Dropdown
                                 placement={`${isRtl ? 'bottom-start' : 'bottom-end'}`}
@@ -589,7 +599,7 @@ export default function DomainDetailKeyword() {
                                             <div className="flex items-center justify-between gap-2 w-full whitespace-nowrap">
                                                 <span>
                                                     {item.url}
-                                                    {item.domain_id === domainInfo?.id ? ` | ${domainInfo?.domain}` : ''}
+                                                    {Number(item.domain_id) === Number(domainInfo?.id) ? ` | ${domainInfo?.domain}` : ''}
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                     <span
@@ -602,7 +612,12 @@ export default function DomainDetailKeyword() {
                                 </ul>
                             </Dropdown>
                         </div>
-                        <button type="button" className="btn btn-success gap-2 flex items-center" onClick={handleImportFileExcel}>
+                        <button
+                            type="button"
+                            className={`btn gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-success'}`}
+                            onClick={handleImportFileExcel}
+                            disabled={isServerRunning}
+                        >
                             <p className="whitespace-nowrap flex items-center gap-2">
                                 <IconUpload />
                                 Import Excel
@@ -611,49 +626,171 @@ export default function DomainDetailKeyword() {
                     </div>
                 </div>
             </div>
-            <div className="flex items-center mb-6">
-                {isServerRunning && (
-                    <div className="flex flex-row items-center gap-4 mx-auto">
-                        {renderProgressBar()}
-                        <button type="button" className="btn shadow-none whitespace-nowrap" onClick={handleStop}>
-                            Dừng đồng bộ
-                        </button>
-                    </div>
-                )}
-            </div>
-            <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden ">
-                {!mainColumns ? (
-                    <button className="flex flex-col items-center justify-center py-20 mx-auto" onClick={handleImportFileExcel}>
+            {isServerRunning && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
+            <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
+                {!isImported ? (
+                    <button className="flex flex-col items-center justify-center py-20 mx-auto" onClick={handleImportFileExcel} disabled={isServerRunning}>
                         <img src="/assets/images/upload.svg" alt="Upload Excel" className="mb-4" />
                         <p>Nhấn để tải lên file Excel</p>
                     </button>
                 ) : (
-                    <div style={{ position: 'relative', height: '70vh', overflow: 'hidden' }} className="datatables pagination-padding">
-                        <DataTable
-                            className="table-hover whitespace-nowrap custom-datatable"
-                            columns={mainColumns}
-                            records={paginatedRecords}
-                            totalRecords={filteredAndSortedRecords.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={(p) => setPage(p)}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={(size) => {
-                                setPage(1);
-                                setPageSize(size);
-                            }}
-                            sortStatus={sortStatus}
-                            onSortStatusChange={({ columnAccessor, direction }) => {
-                                setSortStatus({ columnAccessor: columnAccessor as string, direction });
-                                setPage(1);
-                            }}
-                            selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={setSelectedRecords}
-                            paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
-                            highlightOnHover
-                            rowClassName={(record: any) => (isDomainExpired(record.timeRegDomain) ? '!bg-red-300 hover:!bg-red-200 text-black' : '')}
-                        />
-                    </div>
+                    <>
+                        <div style={{ position: 'relative', height: '70vh', overflow: 'hidden' }} className="datatables pagination-padding">
+                            <DataTable
+                                className="table-hover whitespace-nowrap custom-datatable"
+                                columns={[
+                                    {
+                                        accessor: 'primary_key',
+                                        title: 'Từ khoá chính',
+                                        sortable: true,
+                                        textAlignment: 'left' as DataTableColumnTextAlignment,
+                                    },
+                                    {
+                                        accessor: 'secondary_key',
+                                        title: 'Từ khoá phụ',
+                                        sortable: true,
+                                        textAlignment: 'left' as DataTableColumnTextAlignment,
+                                        render: (row: any) => (
+                                            <Tooltip
+                                                label={row.secondary_key}
+                                                position="top"
+                                                withArrow
+                                                transition="fade"
+                                                transitionDuration={100}
+                                                className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start"
+                                            >
+                                                <div>{row.secondary_key}</div>
+                                            </Tooltip>
+                                        ),
+                                    },
+                                    {
+                                        accessor: 'h1',
+                                        title: 'H1',
+                                        sortable: true,
+                                        textAlignment: 'left' as DataTableColumnTextAlignment,
+                                        render: (row: any) => (
+                                            <Tooltip
+                                                label={row.h1}
+                                                position="top"
+                                                withArrow
+                                                transition="fade"
+                                                transitionDuration={100}
+                                                className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start"
+                                            >
+                                                <div>{row.h1}</div>
+                                            </Tooltip>
+                                        ),
+                                    },
+                                    {
+                                        accessor: 'description',
+                                        title: 'Description',
+                                        sortable: true,
+                                        textAlignment: 'left' as DataTableColumnTextAlignment,
+                                        render: (row: any) => (
+                                            <Tooltip
+                                                label={row.description}
+                                                position="top"
+                                                withArrow
+                                                transition="fade"
+                                                transitionDuration={100}
+                                                className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start"
+                                            >
+                                                <div>{row.description}</div>
+                                            </Tooltip>
+                                        ),
+                                    },
+                                    {
+                                        accessor: 'url',
+                                        title: 'URL',
+                                        sortable: true,
+                                        textAlignment: 'left' as DataTableColumnTextAlignment,
+                                        render: (row: any) => (
+                                            <a href={row.url} target="_blank" rel="noreferrer">
+                                                <Tooltip
+                                                    label={row.url}
+                                                    position="top"
+                                                    withArrow
+                                                    transition="fade"
+                                                    transitionDuration={100}
+                                                    className="w-40 overflow-hidden text-ellipsis whitespace-nowrap text-start"
+                                                >
+                                                    <div>{row.url}</div>
+                                                </Tooltip>
+                                            </a>
+                                        ),
+                                    },
+                                    {
+                                        accessor: 'is_done',
+                                        title: 'Trạng thái',
+                                        sortable: true,
+                                        textAlignment: 'left' as DataTableColumnTextAlignment,
+                                        render: (row: any) => {
+                                            if (row.status_delete == 1) {
+                                                return <span className="text-sm badge badge-outline-danger">Đã xóa</span>;
+                                            } else {
+                                                return (
+                                                    <span className={`text-sm badge ${row.is_done != 0 ? 'badge-outline-success' : 'badge-outline-warning'}`}>
+                                                        {row.is_done != 0 ? 'Đã viết' : 'Chưa viết'}
+                                                    </span>
+                                                );
+                                            }
+                                        },
+                                    },
+                                    {
+                                        accessor: 'action',
+                                        title: 'Hành động',
+                                        textAlignment: 'center' as DataTableColumnTextAlignment,
+                                        render: (row: any) => {
+                                            if (row.status_delete == 1) {
+                                                return null;
+                                            }
+                                            return row.is_done != 0 && !isServerRunning ? (
+                                                <button className="flex items-center justify-center gap-2 hover:underline" onClick={() => handleRewrite(row)}>
+                                                    Viết lại
+                                                </button>
+                                            ) : null;
+                                        },
+                                    },
+                                ]}
+                                records={paginatedRecords}
+                                totalRecords={filteredAndSortedRecords.length}
+                                recordsPerPage={pageSize}
+                                page={page}
+                                onPageChange={(p) => setPage(p)}
+                                recordsPerPageOptions={PAGE_SIZES}
+                                onRecordsPerPageChange={(size) => {
+                                    setPage(1);
+                                    setPageSize(size);
+                                }}
+                                sortStatus={sortStatus}
+                                onSortStatusChange={({ columnAccessor, direction }) => {
+                                    setSortStatus({ columnAccessor: columnAccessor as string, direction });
+                                    setPage(1);
+                                }}
+                                selectedRecords={selectedRecords}
+                                onSelectedRecordsChange={setSelectedRecords}
+                                paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
+                                highlightOnHover
+                                rowClassName={(row) => (row.status_delete == 1 ? 'bg-gray-300 opacity-50' : '')}
+                                isRecordSelectable={(row) => row.status_delete != 1}
+                            />
+                        </div>
+                        {selectedRecords.length > 0 && (
+                            <div className="flex items-center justify-end my-5 px-5 gap-2">
+                                <div className="flex items-center gap-2">
+                                    {selectedRecords.length} bài viết đã được chọn
+                                    <button
+                                        type="button"
+                                        className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
+                                        onClick={handleRewriteSelected}
+                                        disabled={isServerRunning}
+                                    >
+                                        Viết lại
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             <Modal
@@ -664,11 +801,18 @@ export default function DomainDetailKeyword() {
                 }}
                 size="90%"
             >
+                <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[80%] z-10">{renderStepBar()}</div>
+
                 {currentStep === 1 ? (
                     <>
-                        <div className="flex items-center justify-between w-full mt-10 mb-2">
+                        <div className="flex items-center justify-between w-full mb-2">
                             <p className="text-lg font-semibold">Import Excel</p>
-                            <button type="button" className="btn border-primary shadow-none hover:btn-primary gap-2 flex items-center" onClick={handleImportFileExcel}>
+                            <button
+                                type="button"
+                                className={`btn border-primary shadow-none hover:btn-primary gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+                                onClick={handleImportFileExcel}
+                                disabled={isServerRunning}
+                            >
                                 <p className="whitespace-nowrap flex items-center gap-2 dark:text-white">
                                     <IconUpload />
                                     Chọn lại file Excel
@@ -678,8 +822,33 @@ export default function DomainDetailKeyword() {
                         <div className="panel border-white-light p-0 dark:border-[#1b2e4b]">
                             <div style={{ position: 'relative', height: '600px', overflow: 'hidden' }} className="datatables pagination-padding">
                                 <DataTable
-                                    className="table-hover whitespace-nowrap "
-                                    columns={excelColumns}
+                                    className="table-hover whitespace-nowrap"
+                                    columns={[
+                                        { accessor: 'Từ khoá chính', title: 'Từ khoá chính', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Name Uppercase', title: 'Name Uppercase', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Từ khóa phụ', title: 'Từ khóa phụ', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        {
+                                            accessor: 'url',
+                                            title: 'URL',
+                                            sortable: true,
+                                            textAlignment: 'left' as DataTableColumnTextAlignment,
+                                            render: (row: any) => (
+                                                <a href={row.url} target="_blank" rel="noreferrer">
+                                                    {row.url}
+                                                </a>
+                                            ),
+                                        },
+                                        { accessor: 'Category', title: 'Category', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Tags', title: 'Tags', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Status', title: 'Status', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Home Keywords', title: 'Home Keywords', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Category Keywords', title: 'Category Keywords', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Category Name', title: 'Category Name', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Giá', title: 'Giá', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'SKU', title: 'SKU', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'Source', title: 'Source', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                        { accessor: 'id_prompt', title: 'id_prompt', sortable: true, textAlignment: 'left' as DataTableColumnTextAlignment },
+                                    ]}
                                     records={importedExcelData.slice((modalPage - 1) * modalPageSize, modalPage * modalPageSize)}
                                     totalRecords={importedExcelData.length}
                                     recordsPerPage={modalPageSize}
@@ -697,38 +866,75 @@ export default function DomainDetailKeyword() {
                         </div>
                     </>
                 ) : (
-                    <div className="mt-10">
-                        <p className="text-lg font-semibold">Chọn Prompt phù hợp</p>
-                        {uniqueSites.map((site) => (
-                            <div key={site} className="mb-4">
-                                <p className="font-semibold">{site}</p>
-                                <select value={sitePrompts[site]} onChange={(e) => handlePromptChange(site, e.target.value)} className="mt-2 p-2 border rounded">
-                                    {PROMPT_OPTIONS.map((option) => (
-                                        <option key={option} value={option}>
-                                            Chọn {option}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        ))}
+                    <div>
+                        <p className="text-lg font-semibold mb-10">Chọn Prompt phù hợp</p>
+                        {uniqueSites.map((site) => {
+                            const promptsForSite = promptList.filter((p) => displayMapping[p.typeSite.trim().toLowerCase()] === site);
+                            return (
+                                <div key={site} className="mb-4">
+                                    <p className="font-semibold mb-4">Chọn gói {site}</p>
+                                    {promptsForSite.length > 0 ? (
+                                        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+                                            {promptsForSite.map((prompt) => {
+                                                const isSelected = sitePrompts[site] === prompt.id;
+                                                const cardClasses = isSelected ? 'bg-primary/10 border-primary' : 'bg-none border-gray-200';
+                                                return (
+                                                    <div
+                                                        key={prompt.id}
+                                                        className={`${cardClasses} p-4 rounded-lg border w-full mb-2 cursor-pointer`}
+                                                        onClick={() => handleSelectPrompt(site, prompt.id)}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <div
+                                                                className="relative border-2 w-5 h-5 rounded-full flex items-center justify-center"
+                                                                style={{ borderColor: isSelected ? '#e06000' : '#d1d5db' }}
+                                                            >
+                                                                {isSelected && <div className="w-3 h-3 bg-primary rounded-full"></div>}
+                                                            </div>
+                                                            <p>{prompt.name}</p>
+                                                        </div>
+                                                        <ul className="list-disc ml-6">
+                                                            {prompt.note.split('\n').map((line: string, index: number) => (
+                                                                <li key={index}>{line}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p>Không có gói phù hợp cho {site}</p>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
                 <div className="flex items-center justify-end mt-5 gap-2">
                     {currentStep === 2 ? (
-                        <button type="button" className="btn btn-outline gap-2" onClick={handleBackStep}>
-                            Quay lại
-                        </button>
-                    ) : null}
-                    {currentStep === 1 ? (
-                        <button type="button" className="btn btn-primary gap-2" onClick={handleNextStep}>
+                        <>
+                            <button
+                                type="button"
+                                className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-outline'}`}
+                                onClick={() => setCurrentStep(1)}
+                                disabled={isServerRunning}
+                            >
+                                Quay lại
+                            </button>
+                            <button type="button" className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`} onClick={handleRun} disabled={isServerRunning}>
+                                Xác nhận
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            type="button"
+                            className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
+                            onClick={() => setCurrentStep(2)}
+                            disabled={isServerRunning}
+                        >
                             Tiếp tục
                         </button>
-                    ) : null}
-                    {currentStep === 2 ? (
-                        <button type="button" className="btn btn-primary gap-2" onClick={handleRun}>
-                            Xác nhận
-                        </button>
-                    ) : null}
+                    )}
                 </div>
             </Modal>
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls, .csv" onChange={handleImportExcel} />

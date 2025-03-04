@@ -13,7 +13,7 @@ const typeSiteOptions = [
 ];
 
 const groupSiteOptions = [
-    { value: 'Hình Ảnh', label: 'Hình Ảnh' },
+    { value: 'Hình ảnh', label: 'Hình ảnh' },
     { value: 'Hướng dẫn', label: 'Hướng dẫn' },
     { value: 'Tổng hợp', label: 'Tổng hợp' },
     { value: 'Học thuật', label: 'Học thuật' },

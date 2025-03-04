@@ -1,9 +1,7 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useMemo, useState, Fragment } from 'react';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
 import { sortBy as lodashSortBy } from 'lodash';
-import IconEye from '@/components/icon/icon-eye';
 import IconEdit from '@/components/icon/icon-edit';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrash from '@/components/icon/icon-trash';
@@ -11,6 +9,9 @@ import IconRefresh from '@/components/icon/icon-refresh';
 import Cookies from 'js-cookie';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import logout from '@/utils/logout';
+import { Transition, Dialog } from '@headlessui/react';
+import withReactContent from 'sweetalert2-react-content';
+import Swal from 'sweetalert2';
 
 interface GoogleSearchApiData {
     id: number;
@@ -22,20 +23,24 @@ const PAGE_SIZES = [5, 10, 20, 30, 50];
 
 export default function ComponentListGoogleSearchApi() {
     const token = Cookies.get('token');
-
     const [data, setData] = useState<GoogleSearchApiData[]>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
     const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<{
-        columnAccessor: keyof GoogleSearchApiData;
-        direction: 'asc' | 'desc';
-    }>({ columnAccessor: 'apiKey', direction: 'asc' });
+    const [sortStatus, setSortStatus] = useState<{ columnAccessor: keyof GoogleSearchApiData; direction: 'asc' | 'desc' }>({ columnAccessor: 'apiKey', direction: 'asc' });
     const [selectedRecords, setSelectedRecords] = useState<GoogleSearchApiData[]>([]);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [createApiKey, setCreateApiKey] = useState('');
+    const [createCx, setCreateCx] = useState('');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editId, setEditId] = useState<number | null>(null);
+    const [editApiKey, setEditApiKey] = useState('');
+    const [editCx, setEditCx] = useState('');
+
+    const MySwal = withReactContent(Swal);
 
     useEffect(() => {
         fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function fetchData() {
@@ -47,18 +52,15 @@ export default function ComponentListGoogleSearchApi() {
                 },
             });
             const json = await res.json();
-
             if (!json) {
                 ShowMessageError({ content: 'Dữ liệu trả về không đúng cấu trúc' });
                 return;
             }
-
             if ([401, 403].includes(json.errorcode)) {
                 ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
                 logout();
                 return;
             }
-
             if (json.errorcode === 200) {
                 const rows = json.data.rows || [];
                 const mapped = rows.map((row: any) => ({
@@ -81,7 +83,20 @@ export default function ComponentListGoogleSearchApi() {
     };
 
     async function handleDeleteSingle(id: number) {
-        if (!window.confirm('Bạn có chắc muốn xóa?')) return;
+        const result = await MySwal.fire({
+            title: 'Bạn có chắc muốn xóa?',
+            text: 'Hành động này không thể hoàn tác!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-google-search-api/delete-google-search-api`, {
                 method: 'POST',
@@ -109,7 +124,20 @@ export default function ComponentListGoogleSearchApi() {
     }
 
     async function handleDeleteMulti() {
-        if (!window.confirm('Bạn có chắc muốn xóa các mục đã chọn?')) return;
+        const result = await MySwal.fire({
+            title: 'Bạn có chắc muốn xóa?',
+            text: 'Hành động này không thể hoàn tác!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
         try {
             const ids = selectedRecords.map((item) => item.id);
             const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-google-search-api/delete-google-search-api`, {
@@ -144,7 +172,6 @@ export default function ComponentListGoogleSearchApi() {
             const cxStr = item.cx?.toLowerCase() || '';
             return apiKeyStr.includes(s) || cxStr.includes(s);
         });
-
         if (sortStatus.columnAccessor) {
             filtered = lodashSortBy(filtered, sortStatus.columnAccessor);
             if (sortStatus.direction === 'desc') {
@@ -154,7 +181,6 @@ export default function ComponentListGoogleSearchApi() {
         return filtered;
     }, [data, search, sortStatus]);
 
-    // Phân trang
     const paginatedRecords = useMemo(() => {
         const from = (page - 1) * pageSize;
         const to = from + pageSize;
@@ -171,6 +197,100 @@ export default function ComponentListGoogleSearchApi() {
         }
     }, [page, totalPages]);
 
+    function openCreateModal() {
+        setCreateApiKey('');
+        setCreateCx('');
+        setIsCreateModalOpen(true);
+    }
+
+    async function handleCreate() {
+        if (!createApiKey.trim() || !createCx.trim()) {
+            ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường' });
+            return;
+        }
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-google-search-api/insert-google-search-api`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ dataGoogleSearchApi: [{ apiKey: createApiKey, cx: createCx }] }),
+            });
+            const result = await res.json();
+            if ([401, 403].includes(result.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (result.errorcode === 200) {
+                ShowMessageSuccess({ content: 'Thêm thành công!' });
+                fetchData();
+                setIsCreateModalOpen(false);
+            } else {
+                ShowMessageError({ content: 'Thêm thất bại!' });
+            }
+        } catch {
+            ShowMessageError({ content: 'Lỗi khi thêm dữ liệu' });
+        }
+    }
+
+    function openEditModal(record: GoogleSearchApiData) {
+        setEditId(record.id);
+        setEditApiKey(record.apiKey);
+        setEditCx(record.cx);
+        setIsEditModalOpen(true);
+    }
+
+    async function handleEdit() {
+        if (!editId) {
+            ShowMessageError({ content: 'ID không hợp lệ hoặc không được cung cấp.' });
+            return;
+        }
+        if (!editApiKey.trim() || !editCx.trim()) {
+            ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
+            return;
+        }
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-google-search-api/update-google-search-api`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ id: editId, apiKey: editApiKey, cx: editCx }),
+            });
+            const result = await res.json();
+            switch (result.errorcode) {
+                case 200:
+                    ShowMessageSuccess({ content: 'Cập nhật thành công!' });
+                    fetchData();
+                    setIsEditModalOpen(false);
+                    break;
+                case 10:
+                    ShowMessageError({ content: 'Dữ liệu không được để trống.' });
+                    break;
+                case 300:
+                    ShowMessageError({ content: 'Tên miền đã tồn tại.' });
+                    break;
+                case 401:
+                case 403:
+                    ShowMessageError({ content: 'Phiên đăng nhập hết hạn.' });
+                    logout();
+                    break;
+                case 102:
+                    ShowMessageError({ content: 'Lỗi khi cập nhật dữ liệu.' });
+                    break;
+                case 311:
+                    ShowMessageError({ content: 'Dữ liệu không hợp lệ.' });
+                    break;
+                default:
+                    ShowMessageError({ content: 'Lỗi không xác định.' });
+            }
+        } catch (error) {
+            ShowMessageError({ content: 'Lỗi khi cập nhật dữ liệu.' });
+        }
+    }
+
     const columns: DataTableColumn<GoogleSearchApiData>[] = [
         { accessor: 'id', title: 'ID', sortable: true },
         { accessor: 'apiKey', title: 'API Key', sortable: true },
@@ -180,12 +300,12 @@ export default function ComponentListGoogleSearchApi() {
             title: 'Hành động',
             textAlignment: 'center',
             render: (record) => (
-                <div className="flex justify-center gap-4">
-                    <Link href={`/google-search-api/edit?id=${record.id}`} className="text-info hover:text-primary-dark">
-                        <IconEdit />
-                    </Link>
-                    <button onClick={() => handleDeleteSingle(record.id)} className=" text-red-500 hover:text-red-700">
-                        <IconTrash />
+                <div className="justify-center flex flex-col gap-1">
+                    <button onClick={() => openEditModal(record)} className="hover:underline">
+                        Chỉnh sửa
+                    </button>
+                    <button onClick={() => handleDeleteSingle(record.id)} className="hover:underline">
+                        Xóa
                     </button>
                 </div>
             ),
@@ -198,10 +318,10 @@ export default function ComponentListGoogleSearchApi() {
                 <div className="invoice-table">
                     <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center justify-between">
                         <div className="flex gap-2">
-                            <Link href="/google-search-api/create" className="btn btn-primary gap-2 items-center flex">
+                            <button onClick={openCreateModal} className="btn btn-primary gap-2 items-center flex">
                                 <IconPlus />
                                 <span className="hidden md:inline">Thêm Mới</span>
-                            </Link>
+                            </button>
                             <button type="button" className="btn btn-warning gap-2 flex items-center" onClick={refreshData}>
                                 <IconRefresh />
                                 <span className="hidden md:inline">Làm mới</span>
@@ -221,7 +341,6 @@ export default function ComponentListGoogleSearchApi() {
                             }}
                         />
                     </div>
-
                     <div className="datatables pagination-padding">
                         <DataTable
                             className="table-hover whitespace-nowrap"
@@ -237,12 +356,7 @@ export default function ComponentListGoogleSearchApi() {
                                 setPage(1);
                             }}
                             sortStatus={sortStatus}
-                            onSortStatusChange={(sortStatus) =>
-                                setSortStatus({
-                                    columnAccessor: sortStatus.columnAccessor as keyof GoogleSearchApiData,
-                                    direction: sortStatus.direction,
-                                })
-                            }
+                            onSortStatusChange={(sortStatus) => setSortStatus({ columnAccessor: sortStatus.columnAccessor as keyof GoogleSearchApiData, direction: sortStatus.direction })}
                             selectedRecords={selectedRecords}
                             onSelectedRecordsChange={setSelectedRecords}
                             paginationText={({ from, to, totalRecords }) => `Hiển thị ${from} - ${to} trong tổng số ${totalRecords} mục`}
@@ -251,6 +365,114 @@ export default function ComponentListGoogleSearchApi() {
                     </div>
                 </div>
             </div>
+            <Transition appear show={isCreateModalOpen} as={Fragment}>
+                <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={() => setIsCreateModalOpen(false)}>
+                    <div className="min-h-screen px-4 text-center">
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0"
+                            enterTo="opacity-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100"
+                            leaveTo="opacity-0"
+                        >
+                            <div className="fixed inset-0 bg-black opacity-30" />
+                        </Transition.Child>
+                        <span className="inline-block h-screen align-middle" aria-hidden="true">
+                            &#8203;
+                        </span>
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 scale-95"
+                            enterTo="opacity-100 scale-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 scale-100"
+                            leaveTo="opacity-0 scale-95"
+                        >
+                            <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded dark:bg-[#121c2c]">
+                                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                                    Thêm mới
+                                </Dialog.Title>
+                                <div className="mt-4">
+                                    <label className="block mb-1 dark:text-[#c9d1d9]">API Key</label>
+                                    <input
+                                        type="text"
+                                        className="w-full border p-2 rounded form-input"
+                                        placeholder="Nhập API Key"
+                                        value={createApiKey}
+                                        onChange={(e) => setCreateApiKey(e.target.value)}
+                                    />
+                                </div>
+                                <div className="mt-4">
+                                    <label className="block mb-1 dark:text-[#c9d1d9]">CX</label>
+                                    <input type="text" className="w-full border p-2 rounded form-input" placeholder="Nhập CX" value={createCx} onChange={(e) => setCreateCx(e.target.value)} />
+                                </div>
+                                <div className="mt-6 flex justify-end gap-2">
+                                    <button onClick={() => setIsCreateModalOpen(false)} className="btn btn-outline-danger">
+                                        Hủy
+                                    </button>
+                                    <button onClick={handleCreate} className="btn btn-primary">
+                                        Lưu
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition.Child>
+                    </div>
+                </Dialog>
+            </Transition>
+            <Transition appear show={isEditModalOpen} as={Fragment}>
+                <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={() => setIsEditModalOpen(false)}>
+                    <div className="min-h-screen px-4 text-center">
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0"
+                            enterTo="opacity-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100"
+                            leaveTo="opacity-0"
+                        >
+                            <div className="fixed inset-0 bg-black opacity-30" />
+                        </Transition.Child>
+                        <span className="inline-block h-screen align-middle" aria-hidden="true">
+                            &#8203;
+                        </span>
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 scale-95"
+                            enterTo="opacity-100 scale-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 scale-100"
+                            leaveTo="opacity-0 scale-95"
+                        >
+                            <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded dark:bg-[#121c2c]">
+                                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                                    Chỉnh sửa
+                                </Dialog.Title>
+                                <div className="mt-4">
+                                    <label className="block mb-1 dark:text-[#c9d1d9]">API Key</label>
+                                    <input type="text" className="w-full border p-2 rounded form-input" placeholder="Nhập API Key" value={editApiKey} onChange={(e) => setEditApiKey(e.target.value)} />
+                                </div>
+                                <div className="mt-4">
+                                    <label className="block mb-1 dark:text-[#c9d1d9]">CX</label>
+                                    <input type="text" className="w-full border p-2 rounded form-input" placeholder="Nhập CX" value={editCx} onChange={(e) => setEditCx(e.target.value)} />
+                                </div>
+                                <div className="mt-6 flex justify-end gap-2">
+                                    <button onClick={() => setIsEditModalOpen(false)} className="btn btn-outline-danger">
+                                        Hủy
+                                    </button>
+                                    <button onClick={handleEdit} className="btn btn-primary">
+                                        Lưu
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition.Child>
+                    </div>
+                </Dialog>
+            </Transition>
         </div>
     );
 }

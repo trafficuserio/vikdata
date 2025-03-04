@@ -7,7 +7,8 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 const token = Cookies.get('token');
 const PAGE_SIZES = [10, 20, 30, 50, 100];
-
+import withReactContent from 'sweetalert2-react-content';
+import Swal from 'sweetalert2';
 interface ServerInfo {
     id: number;
     domain_server: string;
@@ -26,6 +27,9 @@ export default function Server() {
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
     const [serverForm, setServerForm] = useState({ domain_server: '', name: '', description: '' });
     const [selectedServer, setSelectedServer] = useState<ServerInfo | null>(null);
+
+    const MySwal = withReactContent(Swal);
+
     const fetchServers = async () => {
         const offset = (page - 1) * pageSize;
         const res = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/get-server-infors-admin`, {
@@ -67,6 +71,20 @@ export default function Server() {
         setIsUpdateModalOpen(false);
     };
     const deleteServer = async (id: number) => {
+        const result = await MySwal.fire({
+            title: 'Bạn có chắc muốn xóa?',
+            text: 'Hành động này không thể hoàn tác!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
         await axios.post(
             `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/delete-server-infor`,
             { id: [id] },
@@ -84,19 +102,20 @@ export default function Server() {
         {
             accessor: 'action',
             title: 'Hành động',
+            textAlignment: 'center',
             render: (server: ServerInfo) => (
-                <div className="flex gap-2">
+                <div className="justify-center flex flex-col gap-1">
                     <button
                         onClick={() => {
                             setSelectedServer(server);
                             setServerForm({ domain_server: server.domain_server, name: server.name, description: server.description });
                             setIsUpdateModalOpen(true);
                         }}
-                        className="btn btn-primary"
+                        className="hover:underline"
                     >
-                        Sửa
+                        Chỉnh sửa
                     </button>
-                    <button onClick={() => deleteServer(server.id)} className="btn btn-danger">
+                    <button onClick={() => deleteServer(server.id)} className="hover:underline">
                         Xóa
                     </button>
                 </div>
@@ -158,28 +177,37 @@ export default function Server() {
                                 <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
                                     Tạo Server
                                 </Dialog.Title>
-                                <div className="mt-4 space-y-4">
-                                    <input
-                                        type="text"
-                                        placeholder="Domain Server"
-                                        value={serverForm.domain_server}
-                                        onChange={(e) => setServerForm({ ...serverForm, domain_server: e.target.value })}
-                                        className="border p-2 w-full form-input"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Tên"
-                                        value={serverForm.name}
-                                        onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
-                                        className="border p-2 w-full form-input"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Mô tả"
-                                        value={serverForm.description}
-                                        onChange={(e) => setServerForm({ ...serverForm, description: e.target.value })}
-                                        className="border p-2 w-full form-input"
-                                    />
+                                <div className="mt-4 space-y-4 dark:text-[#c9d1d9]">
+                                    <div>
+                                        <label className="block mb-1">Domain Server</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Domain Server"
+                                            value={serverForm.domain_server}
+                                            onChange={(e) => setServerForm({ ...serverForm, domain_server: e.target.value })}
+                                            className="border p-2 w-full form-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block mb-1">Tên</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Tên"
+                                            value={serverForm.name}
+                                            onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
+                                            className="border p-2 w-full form-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block mb-1">Mô tả</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Mô tả"
+                                            value={serverForm.description}
+                                            onChange={(e) => setServerForm({ ...serverForm, description: e.target.value })}
+                                            className="border p-2 w-full form-input"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="mt-6 flex justify-end space-x-4">
                                     <button onClick={() => setIsCreateModalOpen(false)} className="btn btn-outline-danger">
@@ -224,34 +252,44 @@ export default function Server() {
                                 <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
                                     Cập nhật Server
                                 </Dialog.Title>
-                                <div className="mt-4 space-y-4">
-                                    <input
-                                        type="text"
-                                        placeholder="Domain Server"
-                                        value={serverForm.domain_server}
-                                        onChange={(e) => setServerForm({ ...serverForm, domain_server: e.target.value })}
-                                        className="border p-2 w-full form-input"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Name"
-                                        value={serverForm.name}
-                                        onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
-                                        className="border p-2 w-full form-input"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Description"
-                                        value={serverForm.description}
-                                        onChange={(e) => setServerForm({ ...serverForm, description: e.target.value })}
-                                        className="border p-2 w-full form-input"
-                                    />
+                                <div className="mt-4 space-y-4 dark:text-[#c9d1d9]">
+                                    <div>
+                                        <label className="block mb-1">Domain Server</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Domain Server"
+                                            value={serverForm.domain_server}
+                                            onChange={(e) => setServerForm({ ...serverForm, domain_server: e.target.value })}
+                                            className="border p-2 w-full form-input"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block mb-1">Tên</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Tên"
+                                            value={serverForm.name}
+                                            onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
+                                            className="border p-2 w-full form-input"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block mb-1">Mô tả</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Mô tả"
+                                            value={serverForm.description}
+                                            onChange={(e) => setServerForm({ ...serverForm, description: e.target.value })}
+                                            className="border p-2 w-full form-input"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="mt-6 flex justify-end space-x-4">
-                                    <button onClick={() => setIsUpdateModalOpen(false)} className="btn btn-outline-danger">
+                                <div className="justify-center flex flex-col gap-1">
+                                    <button onClick={() => setIsUpdateModalOpen(false)} className="hover:underline">
                                         Hủy
                                     </button>
-                                    <button onClick={updateServer} className="btn btn-success">
+                                    <button onClick={updateServer} className="hover:underline">
                                         Cập nhật
                                     </button>
                                 </div>

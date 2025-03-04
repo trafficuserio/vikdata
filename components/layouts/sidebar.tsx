@@ -120,7 +120,7 @@ const Sidebar = () => {
                                         <Link href="/admin" className="nav-link group">
                                             <div className="flex items-center">
                                                 <IconUser className="shrink-0 group-hover:!text-primary" fill={true} />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Admin</span>
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Quản lý tài khoản</span>
                                             </div>
                                         </Link>
                                     </li>

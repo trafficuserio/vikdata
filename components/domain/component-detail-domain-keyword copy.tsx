@@ -194,7 +194,7 @@ export default function DomainDetailKeyword() {
                     console.error('Error fetching data:', error);
                 });
         }
-    }, [domainInfo?.domain, importedExcelData, token]);
+    }, [domainInfo?.domain, importedExcelData]);
     const isImported = importedExcelData.length > 0;
     const recordsSource = isImported ? importedExcelData : data;
     const filteredAndSortedRecords = useMemo(() => {
@@ -225,7 +225,7 @@ export default function DomainDetailKeyword() {
                 setAiTypes(types.map((type: any) => ({ value: type.id, label: type.name })));
             })
             .catch((err) => console.error(err));
-    }, [token]);
+    }, []);
     useEffect(() => {
         axios
             .get(`${process.env.NEXT_PUBLIC_URL_API}/api/ai/get-ai-models`, {
@@ -242,7 +242,7 @@ export default function DomainDetailKeyword() {
                 );
             })
             .catch((err) => console.error(err));
-    }, [token]);
+    }, []);
     const getModelOptions = (typeOption: { value: number; label: string } | null) => {
         if (!typeOption) return [];
         return aiModels.filter((model) => model.typeAIId === typeOption.value).map((model) => ({ value: model.value, label: model.label }));
@@ -300,7 +300,7 @@ export default function DomainDetailKeyword() {
                 })
                 .catch((err) => console.error(err));
         }
-    }, [domainInfo, domainId, token]);
+    }, [domainInfo]);
     useEffect(() => {
         if (modalPromptConfig) {
             axios
@@ -313,7 +313,7 @@ export default function DomainDetailKeyword() {
                 })
                 .catch(() => setAutoPrompts([]));
         }
-    }, [modalPromptConfig, token]);
+    }, [modalPromptConfig]);
     const handleButtonClick = () => {
         fileInputRef.current?.click();
     };

@@ -17,10 +17,12 @@ import IconRefresh from '@/components/icon/icon-refresh';
 import IconKeyword from '@/components/icon/icon-keyword';
 import IconCalendar from '@/components/icon/icon-calendar';
 
-import Select from 'react-select';
+import Select, { components } from 'react-select';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import dayjs from 'dayjs';
+import withReactContent from 'sweetalert2-react-content';
+import Swal from 'sweetalert2';
 
 const shortcutsItems = [
     {
@@ -167,20 +169,12 @@ const typeSiteOptions = [
 
 const groupSiteOptions = [
     { value: 'Tất cả', label: 'Tất cả' },
-    { value: 'Hình Ảnh', label: 'Hình Ảnh' },
+    { value: 'Hình ảnh', label: 'Hình ảnh' },
     { value: 'Hướng dẫn', label: 'Hướng dẫn' },
     { value: 'Tổng hợp', label: 'Tổng hợp' },
     { value: 'Học thuật', label: 'Học thuật' },
     { value: 'Toplist', label: 'Toplist' },
     { value: 'Bán hàng', label: 'Bán hàng' },
-];
-
-const personOptions = [
-    { value: 'Tất cả', label: 'Tất cả' },
-    { value: 'Dương', label: 'Dương' },
-    { value: 'Linh', label: 'Linh' },
-    { value: 'Nguyên', label: 'Nguyên' },
-    { value: 'Khác', label: 'Khác' },
 ];
 
 export default function ComponentListDomain() {
@@ -194,7 +188,6 @@ export default function ComponentListDomain() {
 
     const [typeSite, setTypeSite] = useState('Tất cả');
     const [groupSite, setGroupSite] = useState('Tất cả');
-    const [person, setPerson] = useState('Tất cả');
 
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
@@ -203,6 +196,7 @@ export default function ComponentListDomain() {
     const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
 
     const datePickerRef = useRef<HTMLDivElement>(null);
+    const MySwal = withReactContent(Swal);
 
     useEffect(() => {
         fetchData();
@@ -302,11 +296,10 @@ export default function ComponentListDomain() {
 
             const matchesTypeSite = typeSite === 'Tất cả' || item.typeSite === typeSite;
             const matchesGroupSite = groupSite === 'Tất cả' || item.groupSite === groupSite;
-            const matchesPerson = person === 'Tất cả' || item.person === person;
 
             const withinDateRange = !startDate || !endDate || (item.timeIndex && new Date(item.timeIndex) >= startDate && new Date(item.timeIndex) <= endDate);
 
-            return matchesSearch && matchesTypeSite && matchesGroupSite && matchesPerson && withinDateRange;
+            return matchesSearch && matchesTypeSite && matchesGroupSite && withinDateRange;
         });
         if (sortStatus) {
             filtered = lodashSortBy(filtered, sortStatus.columnAccessor);
@@ -315,7 +308,7 @@ export default function ComponentListDomain() {
             }
         }
         return filtered;
-    }, [domains, search, sortStatus, typeSite, groupSite, person, startDate, endDate]);
+    }, [domains, search, sortStatus, typeSite, groupSite, startDate, endDate]);
 
     const paginatedRecords = useMemo(() => {
         const from = (page - 1) * pageSize;
@@ -339,7 +332,20 @@ export default function ComponentListDomain() {
     };
 
     async function handleDelete(id: number | null = null) {
-        if (!window.confirm('Bạn có chắc muốn xóa?')) return;
+        const result = await MySwal.fire({
+            title: 'Bạn có chắc muốn xóa?',
+            text: 'Hành động này không thể hoàn tác!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy',
+        });
+
+        if (!result.isConfirmed) {
+            return;
+        }
 
         try {
             if (id !== null) {
@@ -401,10 +407,13 @@ export default function ComponentListDomain() {
             title: 'Tên miền',
             sortable: true,
             textAlignment: 'left',
-            render: ({ domain, id }) => (
-                <Link href={`/domain/read?id=${id}`} className="text-blue-500 hover:text-blue-700">
-                    {domain}
-                </Link>
+            render: ({ domain, id, person }) => (
+                <div className="flex items-start gap-1 flex-col">
+                    <Link href={`/domain/read?id=${id}`} className="text-blue-500 hover:text-blue-700">
+                        {domain}
+                    </Link>
+                    <p className="text-xs text-gray-400">Phụ trách: {person}</p>
+                </div>
             ),
         },
         // {
@@ -419,12 +428,12 @@ export default function ComponentListDomain() {
         //     sortable: true,
         //     textAlignment: 'left',
         // },
-        {
-            accessor: 'person',
-            title: 'Phụ trách',
-            sortable: true,
-            textAlignment: 'left',
-        },
+        // {
+        //     accessor: 'person',
+        //     title: 'Phụ trách',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        // },
         {
             accessor: 'rateIndex',
             title: 'Index Rate',
@@ -521,54 +530,54 @@ export default function ComponentListDomain() {
         //     textAlignment: 'left',
         //     render: ({ totalPage, totalPagePublish }) => (totalPage - totalPagePublish).toLocaleString(),
         // },
-        {
-            accessor: 'traffic_day',
-            title: 'Traffic Analytics',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ domainGoogleAnalytics }) => {
-                if (domainGoogleAnalytics && domainGoogleAnalytics.length > 0) {
-                    return domainGoogleAnalytics[0].traffic_day.toLocaleString();
-                }
-                return '0';
-            },
-        },
-        {
-            accessor: 'traffic_day_gsc',
-            title: 'Traffic GSC',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ domainGoogleConsoles }) => {
-                if (domainGoogleConsoles && domainGoogleConsoles.length > 0) {
-                    return domainGoogleConsoles[0].traffic_day.toLocaleString();
-                }
-                return '0';
-            },
-        },
-        {
-            accessor: 'total_impressions_day',
-            title: 'Impressions GSC',
-            sortable: true,
-            textAlignment: 'left',
-            render: ({ domainGoogleConsoles }) => {
-                if (domainGoogleConsoles && domainGoogleConsoles.length > 0) {
-                    return domainGoogleConsoles[0].total_impressions_day.toLocaleString();
-                }
-                return '0';
-            },
-        },
-        {
-            accessor: 'total_impressions_day',
-            title: 'Keywords SEO',
-            sortable: true,
-            textAlignment: 'left',
-        },
-        {
-            accessor: 'total_impressions_day',
-            title: 'Doanh thu ngày',
-            sortable: true,
-            textAlignment: 'left',
-        },
+        // {
+        //     accessor: 'traffic_day',
+        //     title: 'Traffic Analytics',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ domainGoogleAnalytics }) => {
+        //         if (domainGoogleAnalytics && domainGoogleAnalytics.length > 0) {
+        //             return domainGoogleAnalytics[0].traffic_day.toLocaleString();
+        //         }
+        //         return '0';
+        //     },
+        // },
+        // {
+        //     accessor: 'traffic_day_gsc',
+        //     title: 'Traffic GSC',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ domainGoogleConsoles }) => {
+        //         if (domainGoogleConsoles && domainGoogleConsoles.length > 0) {
+        //             return domainGoogleConsoles[0].traffic_day.toLocaleString();
+        //         }
+        //         return '0';
+        //     },
+        // },
+        // {
+        //     accessor: 'total_impressions_day',
+        //     title: 'Impressions GSC',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        //     render: ({ domainGoogleConsoles }) => {
+        //         if (domainGoogleConsoles && domainGoogleConsoles.length > 0) {
+        //             return domainGoogleConsoles[0].total_impressions_day.toLocaleString();
+        //         }
+        //         return '0';
+        //     },
+        // },
+        // {
+        //     accessor: 'total_impressions_day',
+        //     title: 'Keywords SEO',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        // },
+        // {
+        //     accessor: 'total_impressions_day',
+        //     title: 'Doanh thu ngày',
+        //     sortable: true,
+        //     textAlignment: 'left',
+        // },
         // {
         //     accessor: 'total_key_ahrerf',
         //     title: 'Từ khóa Ahrefs',
@@ -640,15 +649,15 @@ export default function ComponentListDomain() {
             sortable: false,
             textAlignment: 'center',
             render: (item) => (
-                <div className="flex justify-center gap-4">
-                    <Link href={`/domain/edit?id=${item.id}`} className="text-yellow-500 hover:text-yellow-700">
-                        <IconEdit />
+                <div className="justify-center flex flex-col gap-1">
+                    <Link href={`/domain/edit?id=${item.id}`} className="hover:underline">
+                        Chỉnh sửa
                     </Link>
-                    <Link href={`/domain/keyword?id=${item.id}`} className="text-primary hover:text-primary-dark">
+                    {/* <Link href={`/domain/keyword?id=${item.id}`} className="text-primary hover:text-primary-dark">
                         <IconKeyword />
-                    </Link>
-                    <button type="button" className="text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}>
-                        <IconTrash />
+                    </Link> */}
+                    <button type="button" onClick={() => handleDelete(item.id)} className="hover:underline">
+                        Xóa
                     </button>
                 </div>
             ),
@@ -758,27 +767,69 @@ export default function ComponentListDomain() {
         setIsDatePickerVisible(false);
     };
 
+    const CustomSingleValueTypeSite = (props: any) => {
+        return <components.SingleValue {...props}>{`Loại Site: ${props.data.label}`}</components.SingleValue>;
+    };
+
+    const CustomSingleValueGroupSite = (props: any) => {
+        return <components.SingleValue {...props}>{`Nhóm Site: ${props.data.label}`}</components.SingleValue>;
+    };
+
     return (
         <div className="p-4">
             <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
                 <div className="invoice-table">
                     <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Link href="/domain/add" className="btn btn-primary gap-2 flex items-center">
-                                <IconPlus />
-                                <p className="hidden md:block">Thêm Mới</p>
-                            </Link>
-                            <button type="button" className="btn btn-warning gap-2 flex items-center" onClick={() => refreshData()}>
-                                <IconRefresh />
-                                <p className="hidden md:block">Làm mới</p>
-                            </button>
-                            <button type="button" className="btn btn-danger gap-2 flex items-center" onClick={() => handleDelete()} disabled={selectedRecords.length === 0}>
-                                <IconTrash />
-                                <p className="hidden md:block">Xóa</p>
-                            </button>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
+                                placeholder="Tìm kiếm..."
+                                className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white w-full"
+                            />
+                            <div className="flex flex-col gap-2 md:flex-row items-center justify-end custom-select  w-full">
+                                <div>
+                                    <Select
+                                        id="typeSite"
+                                        placeholder="Chọn loại site..."
+                                        options={typeSiteOptions}
+                                        value={typeSiteOptions.find((op) => op.value === typeSite) || { value: 'Tất cả', label: 'Tất cả' }}
+                                        onChange={(val) => setTypeSite(val?.value || 'Tất cả')}
+                                        className="w-full md:w-[200px]"
+                                        components={{ SingleValue: CustomSingleValueTypeSite }}
+                                    />
+                                </div>
+                                <div>
+                                    <Select
+                                        id="groupSite"
+                                        placeholder="Chọn nhóm site..."
+                                        options={groupSiteOptions}
+                                        value={groupSiteOptions.find((op) => op.value === groupSite) || { value: 'Tất cả', label: 'Tất cả' }}
+                                        onChange={(val) => setGroupSite(val?.value || 'Tất cả')}
+                                        className="w-full md:w-[200px]"
+                                        components={{ SingleValue: CustomSingleValueGroupSite }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                         <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                            <div className="relative flex w-full justify-end" ref={datePickerRef}>
+                            <div className="relative flex w-full justify-end gap-2" ref={datePickerRef}>
+                                <Link href="/domain/add" className="btn btn-primary gap-2 flex items-center">
+                                    <IconPlus />
+                                    <p className="hidden md:block">Thêm Mới</p>
+                                </Link>
+                                {/* <button type="button" className="btn btn-warning gap-2 flex items-center" onClick={() => refreshData()}>
+                                <IconRefresh />
+                                <p className="hidden md:block">Làm mới</p>
+                            </button> */}
+                                <button type="button" className="btn btn-danger gap-2 flex items-center" onClick={() => handleDelete()} disabled={selectedRecords.length === 0}>
+                                    <IconTrash />
+                                    <p className="hidden md:block">Xóa</p>
+                                </button>
                                 <button className="btn btn-primary w-max whitespace-nowrap rounded px-3 py-1" onClick={toggleDatePicker}>
                                     <IconCalendar className="block h-5 w-5" />
                                     <p className="ml-2 hidden md:block">{!startDate && !endDate ? 'Tìm theo ngày Index' : displayDateRange()}</p>
@@ -837,80 +888,41 @@ export default function ComponentListDomain() {
                                     </div>
                                 )}
                             </div>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => {
-                                    setSearch(e.target.value);
-                                    setPage(1);
-                                }}
-                                placeholder="Tìm kiếm..."
-                                className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white w-full4"
-                            />
                         </div>
                     </div>
-                    <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
-                        <DataTable
-                            className="table-hover whitespace-nowrap"
-                            records={paginatedRecords}
-                            columns={columns}
-                            totalRecords={filteredAndSortedRecords.length}
-                            recordsPerPage={pageSize}
-                            page={page}
-                            onPageChange={(p) => setPage(p)}
-                            recordsPerPageOptions={PAGE_SIZES}
-                            onRecordsPerPageChange={(size) => {
-                                setPageSize(size);
-                                setPage(1);
-                            }}
-                            sortStatus={sortStatus}
-                            onSortStatusChange={({ columnAccessor, direction }) => {
-                                setSortStatus({
-                                    columnAccessor: columnAccessor as string,
-                                    direction: direction as 'asc' | 'desc',
-                                });
-                                setPage(1);
-                            }}
-                            selectedRecords={selectedRecords}
-                            onSelectedRecordsChange={setSelectedRecords}
-                            paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
-                            highlightOnHover
-                            rowClassName={(record) => (isDomainExpired(record.timeRegDomain) ? '!bg-red-300 hover:!bg-red-200 text-black' : '')}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center custom-select px-4">
-                        <div>
-                            <label>Loại site</label>
-                            <Select
-                                id="typeSite"
-                                placeholder="Chọn loại site..."
-                                options={typeSiteOptions}
-                                value={typeSiteOptions.find((op) => op.value === typeSite)}
-                                onChange={(val) => setTypeSite(val?.value || 'Tất cả')}
-                                className="w-full md:w-[200px]"
-                            />
-                        </div>
-                        <div>
-                            <label>Nhóm site</label>
-                            <Select
-                                id="groupSite"
-                                placeholder="Chọn nhóm site..."
-                                options={groupSiteOptions}
-                                value={groupSiteOptions.find((op) => op.value === groupSite)}
-                                onChange={(val) => setGroupSite(val?.value || 'Tất cả')}
-                                className="w-full md:w-[200px]"
-                            />
-                        </div>
-                        <div>
-                            <label>Người phụ trách</label>
-                            <Select
-                                id="person"
-                                placeholder="Chọn người phụ trách..."
-                                options={personOptions}
-                                value={personOptions.find((op) => op.value === person)}
-                                onChange={(val) => setPerson(val?.value || 'Tất cả')}
-                                className="w-full md:w-[200px]"
-                            />
+                    <div className="panel p-0 overflow-hidden">
+                        <div className="invoice-table">
+                            <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
+                                <div style={{ position: 'relative', height: '70vh', overflow: 'hidden' }} className="datatables pagination-padding">
+                                    <DataTable
+                                        className="table-hover whitespace-nowrap"
+                                        records={paginatedRecords}
+                                        columns={columns}
+                                        totalRecords={filteredAndSortedRecords.length}
+                                        recordsPerPage={pageSize}
+                                        page={page}
+                                        onPageChange={(p) => setPage(p)}
+                                        recordsPerPageOptions={PAGE_SIZES}
+                                        onRecordsPerPageChange={(size) => {
+                                            setPageSize(size);
+                                            setPage(1);
+                                        }}
+                                        sortStatus={sortStatus}
+                                        onSortStatusChange={({ columnAccessor, direction }) => {
+                                            setSortStatus({
+                                                columnAccessor: columnAccessor as string,
+                                                direction: direction as 'asc' | 'desc',
+                                            });
+                                            setPage(1);
+                                        }}
+                                        selectedRecords={selectedRecords}
+                                        onSelectedRecordsChange={setSelectedRecords}
+                                        paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
+                                        highlightOnHover
+                                        rowClassName={(record) => (isDomainExpired(record.timeRegDomain) ? '!bg-red-300 hover:!bg-red-200 text-black' : '')}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
