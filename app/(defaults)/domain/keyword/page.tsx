@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const Domain = () => {
-    return <ComponentListKeyword />;
+    return <></>;
 };
 
 export default Domain;
