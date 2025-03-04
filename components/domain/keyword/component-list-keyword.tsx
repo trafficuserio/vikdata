@@ -549,8 +549,8 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
             ),
         },
         { accessor: 'day', title: 'Ngày', sortable: true, render: ({ day }) => dayjs(day).format('DD/MM/YYYY') },
-        { accessor: 'geolocation', title: 'Geolocation', sortable: true, render: ({ geolocation }) => formatNumber(geolocation) },
-        { accessor: 'host_lang', title: 'Host Lang', sortable: true, render: ({ host_lang }) => formatNumber(host_lang) },
+        // { accessor: 'geolocation', title: 'Geolocation', sortable: true, render: ({ geolocation }) => formatNumber(geolocation) },
+        // { accessor: 'host_lang', title: 'Host Lang', sortable: true, render: ({ host_lang }) => formatNumber(host_lang) },
         { accessor: 'rank_keyword', title: 'Thứ hạng', sortable: true, render: ({ rank_keyword }) => formatNumber(rank_keyword) },
 
         {
