@@ -56,7 +56,6 @@ export default function DomainDetailKeyword() {
     const isRtl = false;
     const filteredAndSortedRecords = data;
     const paginatedRecords = filteredAndSortedRecords.slice((page - 1) * pageSize, page * pageSize);
-    const [syncStartTime, setSyncStartTime] = useState<Date | null>(null);
     const MySwal = withReactContent(Swal);
     const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -78,7 +77,6 @@ export default function DomainDetailKeyword() {
         toplist: 'Toplist',
         product: 'Bán hàng',
     };
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     const animateProgress = (start: number, end: number) => {
         return new Promise<void>((resolve) => {
             const steps = 20;
@@ -349,13 +347,30 @@ export default function DomainDetailKeyword() {
             }
         }
     };
+
+    useEffect(() => {
+        if (uniqueSites.length > 0 && promptList.length > 0) {
+            setSitePrompts((prev) => {
+                const newSitePrompts = { ...prev };
+                uniqueSites.forEach((site) => {
+                    if (!newSitePrompts[site]) {
+                        const promptsForSite = promptList.filter((p) => displayMapping[p.typeSite.trim().toLowerCase()] === site);
+                        if (promptsForSite.length > 0) {
+                            newSitePrompts[site] = promptsForSite[0].id;
+                        }
+                    }
+                });
+                return newSitePrompts;
+            });
+        }
+    }, [uniqueSites, promptList]);
+
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
         setOpenModal(false);
         setProgressPercentage(0);
         setIsServerRunning(true);
         setIsImported(true);
-        setSyncStartTime(new Date());
         const exportData = importedExcelData.map((row: any) => ({
             'Từ khoá chính': row['Từ khoá chính'] || '',
             'Name Uppercase': row['Name Uppercase'] || '',
@@ -384,7 +399,7 @@ export default function DomainDetailKeyword() {
         const isCrawling = domainInfo.group_site === 'Hình ảnh' ? 'True' : 'True';
         formData.append('is_crawling', isCrawling);
         formData.append('url', 'https://' + domainInfo.domain);
-        formData.append('max_workers', '1');
+        formData.append('max_workers', '4');
         formData.append('username', domainInfo.user_aplication);
         formData.append('password', domainInfo.password_aplication);
         const availableServer = activeServer
