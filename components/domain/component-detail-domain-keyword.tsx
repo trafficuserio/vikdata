@@ -420,6 +420,7 @@ export default function DomainDetailKeyword() {
                 });
             } catch (error) {
                 console.error('Lỗi khi đồng bộ dữ liệu:', error);
+                setIsServerRunning(false);
             }
         }
         setIsSyncing(true);
@@ -429,6 +430,7 @@ export default function DomainDetailKeyword() {
     };
     const handleRewrite = async (row: any) => {
         if (!domainInfo || isSyncing) return;
+        setIsServerRunning(true);
         setProgressPercentage(0);
         const typeSite = typeSiteMapping[domainInfo.group_site] || '';
         const availableServer = activeServer
@@ -459,20 +461,20 @@ export default function DomainDetailKeyword() {
                     { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
                 );
                 await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-                setIsServerRunning(true);
                 setIsSyncing(true);
             } catch (error) {
                 console.error('Lỗi khi thực hiện rewrite:', error);
             }
         } else {
             ShowMessageError({ content: 'Không có server nào được chọn' });
+            setIsServerRunning(false);
         }
     };
     const handleRewriteSelected = async () => {
         if (!domainInfo || isSyncing || selectedRecords.length === 0) return;
         const total = selectedRecords.length;
         setProgressPercentage(0);
-        let currentProg = 0;
+        setIsServerRunning(true);
         for (let i = 0; i < total; i++) {
             const row = selectedRecords[i];
             const typeSite = typeSiteMapping[domainInfo.group_site] || '';
@@ -511,6 +513,7 @@ export default function DomainDetailKeyword() {
                 setIsServerRunning(true);
             } else {
                 ShowMessageError({ content: 'Không có server nào được chọn' });
+                setIsServerRunning(false);
             }
         }
     };
