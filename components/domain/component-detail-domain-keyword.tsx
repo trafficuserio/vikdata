@@ -531,6 +531,7 @@ export default function DomainDetailKeyword() {
             ShowMessageError({ content: 'Không có server nào được chọn' });
             return;
         }
+
         const result = await MySwal.fire({
             title: 'Xác nhận',
             text: 'Bạn có chắc chắn muốn xóa dữ liệu không?',
@@ -539,9 +540,18 @@ export default function DomainDetailKeyword() {
             confirmButtonText: 'Xác nhận',
             cancelButtonText: 'Hủy',
         });
-        if (!result.isConfirmed) {
-            return;
-        }
+
+        if (!result.isConfirmed) return;
+
+        MySwal.fire({
+            title: 'Đang xử lý...',
+            text: 'Vui lòng đợi trong giây lát.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                MySwal.showLoading();
+            },
+        });
+
         try {
             await axios.post(
                 `${serverUrl}/api/site/delete`,
@@ -554,8 +564,10 @@ export default function DomainDetailKeyword() {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 },
             );
+
             setServerData((prev) => prev.map((item) => (item.url === serverUrl ? { ...item, has_temp: undefined } : item)));
             setData([]);
+
             MySwal.fire({
                 title: 'Thành công',
                 text: 'Dữ liệu tạm đã được xóa.',
@@ -572,6 +584,7 @@ export default function DomainDetailKeyword() {
             });
         }
     };
+
     const handleSelectPrompt = (site: string, promptId: number) => {
         setSitePrompts((prev) => ({ ...prev, [site]: promptId }));
     };
@@ -604,29 +617,39 @@ export default function DomainDetailKeyword() {
                                 }
                             >
                                 <ul className="min-w-[200px]">
-                                    {serverData.map((item) => (
-                                        <li
-                                            key={item.url}
-                                            className={`p-2 ${!item.is_running ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer' : 'cursor-not-allowed'} ${activeServer?.url === item.url && 'bg-gray-200 dark:bg-gray-700'}`}
-                                            onClick={() => {
-                                                if (!item.is_running) {
-                                                    setActiveServer(item);
-                                                }
-                                            }}
-                                        >
-                                            <div className="flex items-center justify-between gap-2 w-full whitespace-nowrap">
-                                                <span>
-                                                    {item.url}
-                                                    {Number(item.domain_id) === Number(domainInfo?.id) ? ` | ${domainInfo?.domain}` : ''}
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    <span
-                                                        className={`size-2 rounded-full ${item.timedOut ? 'bg-danger' : item.loading ? 'bg-primary' : item.is_running ? 'bg-danger' : 'bg-success'}`}
-                                                    ></span>
+                                    {serverData.length > 0 ? (
+                                        serverData.map((item) => (
+                                            <li
+                                                key={item.url}
+                                                className={`p-2 ${!item.is_running ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer' : 'cursor-not-allowed'} ${
+                                                    activeServer?.url === item.url && 'bg-gray-200 dark:bg-gray-700'
+                                                }`}
+                                                onClick={() => {
+                                                    if (!item.is_running) {
+                                                        setActiveServer(item);
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between gap-2 w-full whitespace-nowrap">
+                                                    <span>
+                                                        {item.url}
+                                                        {Number(item.domain_id) === Number(domainInfo?.id) ? ` | ${domainInfo?.domain}` : ''}
+                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span
+                                                            className={`size-2 rounded-full ${
+                                                                item.timedOut ? 'bg-danger' : item.loading ? 'bg-primary' : item.is_running ? 'bg-danger' : 'bg-success'
+                                                            }`}
+                                                        ></span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="p-2 cursor-not-allowed flex justify-center items-center">
+                                            <span className="inline-block h-6 w-6 animate-spin rounded-full border-[3px] border-transparent border-l-primary"></span>
                                         </li>
-                                    ))}
+                                    )}
                                 </ul>
                             </Dropdown>
                         </div>
