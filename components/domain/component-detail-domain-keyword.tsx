@@ -77,22 +77,7 @@ export default function DomainDetailKeyword() {
         toplist: 'Toplist',
         product: 'Bán hàng',
     };
-    const animateProgress = (start: number, end: number) => {
-        return new Promise<void>((resolve) => {
-            const steps = 20;
-            const stepTime = 15;
-            let currentStep = 0;
-            const intervalId = setInterval(() => {
-                currentStep++;
-                const newProgress = start + ((end - start) * currentStep) / steps;
-                setProgressPercentage(newProgress);
-                if (currentStep === steps) {
-                    clearInterval(intervalId);
-                    resolve();
-                }
-            }, stepTime);
-        });
-    };
+
     useEffect(() => {
         if (domainId && token) {
             axios
@@ -196,7 +181,7 @@ export default function DomainDetailKeyword() {
         }
 
         if (domainInfo && token && isServerRunning) {
-            if (data.some((row) => row.is_done === 0)) {
+            if (data.some((row) => row.is_done == 0)) {
                 refreshIntervalRef.current = setInterval(() => {
                     refreshData();
                 }, 5000);
