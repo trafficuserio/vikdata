@@ -190,15 +190,26 @@ export default function DomainDetailKeyword() {
     }, [domainInfo, token]);
 
     useEffect(() => {
-        if (domainInfo && token && data.length > 0 && data.some((row) => row.is_done === 0)) {
-            refreshIntervalRef.current = setInterval(() => {
-                refreshData();
-            }, 10000);
-            return () => {
-                if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
-            };
+        if (refreshIntervalRef.current) {
+            clearInterval(refreshIntervalRef.current);
+            refreshIntervalRef.current = null;
         }
-    }, [domainInfo, token, data]);
+
+        if (domainInfo && token && isServerRunning) {
+            if (data.some((row) => row.is_done === 0)) {
+                refreshIntervalRef.current = setInterval(() => {
+                    refreshData();
+                }, 5000);
+            }
+        }
+
+        return () => {
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+                refreshIntervalRef.current = null;
+            }
+        };
+    }, [domainInfo, token, isServerRunning, data]);
 
     useEffect(() => {
         axios
@@ -257,7 +268,6 @@ export default function DomainDetailKeyword() {
             </div>
         </div>
     );
-
     const renderStepBar = () => {
         return (
             <div className="w-full mb-8">
@@ -427,7 +437,6 @@ export default function DomainDetailKeyword() {
                 console.error('Lỗi khi đồng bộ dữ liệu:', error);
             }
         }
-        await animateProgress(0, 100);
         setIsSyncing(true);
         setImportedExcelData([]);
         setData([]);
@@ -435,7 +444,6 @@ export default function DomainDetailKeyword() {
     };
     const handleRewrite = async (row: any) => {
         if (!domainInfo || isSyncing) return;
-        setIsServerRunning(true);
         setProgressPercentage(0);
         const typeSite = typeSiteMapping[domainInfo.group_site] || '';
         const availableServer = activeServer
@@ -466,18 +474,17 @@ export default function DomainDetailKeyword() {
                     { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
                 );
                 await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-                await animateProgress(progressPercentage, 100);
+                setIsServerRunning(true);
+                setIsSyncing(true);
             } catch (error) {
                 console.error('Lỗi khi thực hiện rewrite:', error);
             }
         } else {
             ShowMessageError({ content: 'Không có server nào được chọn' });
         }
-        setIsSyncing(true);
     };
     const handleRewriteSelected = async () => {
         if (!domainInfo || isSyncing || selectedRecords.length === 0) return;
-        setIsServerRunning(true);
         const total = selectedRecords.length;
         setProgressPercentage(0);
         let currentProg = 0;
@@ -515,14 +522,12 @@ export default function DomainDetailKeyword() {
                 } catch (error) {
                     console.error('Lỗi khi thực hiện rewrite:', error);
                 }
+                setIsSyncing(true);
+                setIsServerRunning(true);
             } else {
                 ShowMessageError({ content: 'Không có server nào được chọn' });
             }
-            const newProg = Math.round(((i + 1) / total) * 100);
-            await animateProgress(currentProg, newProg);
-            currentProg = newProg;
         }
-        setIsSyncing(true);
     };
     const handleDeleteTempData = async (serverUrl: string) => {
         if (!domainInfo?.domain || !token) return;
@@ -582,7 +587,7 @@ export default function DomainDetailKeyword() {
                     <p className="text-lg font-semibold">Danh sách từ khoá đã viết bài</p>
                     <div className="flex gap-2">
                         <button
-                            disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                            disabled={isServerRunning}
                             type="button"
                             className={`btn gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-danger'}`}
                             onClick={() => handleDeleteTempData(activeServer?.url || '')}
@@ -633,7 +638,7 @@ export default function DomainDetailKeyword() {
                             type="button"
                             className={`btn gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-success'}`}
                             onClick={handleImportFileExcel}
-                            disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                            disabled={isServerRunning}
                         >
                             <p className="whitespace-nowrap flex items-center gap-2">
                                 <IconUpload />
@@ -643,14 +648,10 @@ export default function DomainDetailKeyword() {
                     </div>
                 </div>
             </div>
-            {(isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))) && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
+            {isServerRunning && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
             <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
                 {!isImported ? (
-                    <button
-                        className="flex flex-col items-center justify-center py-20 mx-auto"
-                        onClick={handleImportFileExcel}
-                        disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
-                    >
+                    <button className="flex flex-col items-center justify-center py-20 mx-auto" onClick={handleImportFileExcel} disabled={isServerRunning}>
                         <img src="/assets/images/upload.svg" alt="Upload Excel" className="mb-4" />
                         <p>Nhấn để tải lên file Excel</p>
                     </button>
@@ -804,7 +805,7 @@ export default function DomainDetailKeyword() {
                                         type="button"
                                         className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
                                         onClick={handleRewriteSelected}
-                                        disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                                        disabled={isServerRunning}
                                     >
                                         Viết lại
                                     </button>
@@ -832,7 +833,7 @@ export default function DomainDetailKeyword() {
                                 type="button"
                                 className={`btn border-primary shadow-none hover:btn-primary gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                                 onClick={handleImportFileExcel}
-                                disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                                disabled={isServerRunning}
                             >
                                 <p className="whitespace-nowrap flex items-center gap-2 dark:text-white">
                                     <IconUpload />
@@ -938,16 +939,11 @@ export default function DomainDetailKeyword() {
                                 type="button"
                                 className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-outline'}`}
                                 onClick={() => setCurrentStep(1)}
-                                disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                                disabled={isServerRunning}
                             >
                                 Quay lại
                             </button>
-                            <button
-                                type="button"
-                                className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
-                                onClick={handleRun}
-                                disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
-                            >
+                            <button type="button" className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`} onClick={handleRun} disabled={isServerRunning}>
                                 Xác nhận
                             </button>
                         </>
@@ -956,7 +952,7 @@ export default function DomainDetailKeyword() {
                             type="button"
                             className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
                             onClick={() => setCurrentStep(2)}
-                            disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                            disabled={isServerRunning}
                         >
                             Tiếp tục
                         </button>
