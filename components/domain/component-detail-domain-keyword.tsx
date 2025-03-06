@@ -582,7 +582,7 @@ export default function DomainDetailKeyword() {
                     <p className="text-lg font-semibold">Danh sách từ khoá đã viết bài</p>
                     <div className="flex gap-2">
                         <button
-                            disabled={isServerRunning}
+                            disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
                             type="button"
                             className={`btn gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-danger'}`}
                             onClick={() => handleDeleteTempData(activeServer?.url || '')}
@@ -633,7 +633,7 @@ export default function DomainDetailKeyword() {
                             type="button"
                             className={`btn gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-success'}`}
                             onClick={handleImportFileExcel}
-                            disabled={isServerRunning}
+                            disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
                         >
                             <p className="whitespace-nowrap flex items-center gap-2">
                                 <IconUpload />
@@ -643,10 +643,14 @@ export default function DomainDetailKeyword() {
                     </div>
                 </div>
             </div>
-            {isServerRunning && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
+            {(isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))) && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
             <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
                 {!isImported ? (
-                    <button className="flex flex-col items-center justify-center py-20 mx-auto" onClick={handleImportFileExcel} disabled={isServerRunning}>
+                    <button
+                        className="flex flex-col items-center justify-center py-20 mx-auto"
+                        onClick={handleImportFileExcel}
+                        disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                    >
                         <img src="/assets/images/upload.svg" alt="Upload Excel" className="mb-4" />
                         <p>Nhấn để tải lên file Excel</p>
                     </button>
@@ -800,7 +804,7 @@ export default function DomainDetailKeyword() {
                                         type="button"
                                         className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
                                         onClick={handleRewriteSelected}
-                                        disabled={isServerRunning}
+                                        disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
                                     >
                                         Viết lại
                                     </button>
@@ -828,7 +832,7 @@ export default function DomainDetailKeyword() {
                                 type="button"
                                 className={`btn border-primary shadow-none hover:btn-primary gap-2 flex items-center ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : ''}`}
                                 onClick={handleImportFileExcel}
-                                disabled={isServerRunning}
+                                disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
                             >
                                 <p className="whitespace-nowrap flex items-center gap-2 dark:text-white">
                                     <IconUpload />
@@ -934,11 +938,16 @@ export default function DomainDetailKeyword() {
                                 type="button"
                                 className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-outline'}`}
                                 onClick={() => setCurrentStep(1)}
-                                disabled={isServerRunning}
+                                disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
                             >
                                 Quay lại
                             </button>
-                            <button type="button" className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`} onClick={handleRun} disabled={isServerRunning}>
+                            <button
+                                type="button"
+                                className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
+                                onClick={handleRun}
+                                disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
+                            >
                                 Xác nhận
                             </button>
                         </>
@@ -947,7 +956,7 @@ export default function DomainDetailKeyword() {
                             type="button"
                             className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
                             onClick={() => setCurrentStep(2)}
-                            disabled={isServerRunning}
+                            disabled={isServerRunning || (data.length > 0 && data.some((row) => row.is_done === 0))}
                         >
                             Tiếp tục
                         </button>
