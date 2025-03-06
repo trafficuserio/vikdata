@@ -285,11 +285,11 @@ export default function Server() {
                                         />
                                     </div>
                                 </div>
-                                <div className="justify-center flex flex-col gap-1">
-                                    <button onClick={() => setIsUpdateModalOpen(false)} className="hover:underline">
+                                <div className="mt-6 flex justify-end space-x-4">
+                                    <button onClick={() => setIsUpdateModalOpen(false)} className="btn btn-outline-danger">
                                         Hủy
                                     </button>
-                                    <button onClick={updateServer} className="hover:underline">
+                                    <button onClick={updateServer} className="btn btn-success">
                                         Cập nhật
                                     </button>
                                 </div>
