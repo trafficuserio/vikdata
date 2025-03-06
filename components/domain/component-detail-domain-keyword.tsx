@@ -180,12 +180,10 @@ export default function DomainDetailKeyword() {
             refreshIntervalRef.current = null;
         }
 
-        if (domainInfo && token && isServerRunning) {
-            if (data.some((row) => row.is_done == 0)) {
-                refreshIntervalRef.current = setInterval(() => {
-                    refreshData();
-                }, 5000);
-            }
+        if (domainInfo && token && isSyncing) {
+            refreshIntervalRef.current = setInterval(async () => {
+                await refreshData();
+            }, 5000);
         }
 
         return () => {
@@ -194,7 +192,7 @@ export default function DomainDetailKeyword() {
                 refreshIntervalRef.current = null;
             }
         };
-    }, [domainInfo, token, isServerRunning, data]);
+    }, [domainInfo, token, isSyncing]);
 
     useEffect(() => {
         axios
@@ -279,22 +277,32 @@ export default function DomainDetailKeyword() {
             });
             const newData = response.data;
             if (newData) {
-                const rowsIsDoing = newData.filter((row: any) => row.processing == 'is_doing');
+                setData(newData);
+
+                const rowsIsDoing = newData.filter((row: any) => row.processing === 'is_doing');
                 const total = rowsIsDoing.length;
-                const completed = rowsIsDoing.filter((row: any) => row.is_done == 1).length;
-                const progress = total > 0 ? (completed / total) * 100 : 0;
+                const completed = rowsIsDoing.filter((row: any) => Number(row.is_done) === 1).length;
+                const progress = total > 0 ? (completed / total) * 100 : 100;
+
                 setProgressPercentage(progress);
 
-                if (progress >= 100 && refreshIntervalRef.current) {
-                    clearInterval(refreshIntervalRef.current);
-                    refreshIntervalRef.current = null;
+                if (progress >= 100) {
+                    if (refreshIntervalRef.current) {
+                        clearInterval(refreshIntervalRef.current);
+                        refreshIntervalRef.current = null;
+                    }
+                    setIsSyncing(false);
                 }
-                setData(newData);
             }
         } catch (error) {
             console.error('Error fetching data:', error);
             setData([]);
             setImportedExcelData([]);
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+                refreshIntervalRef.current = null;
+            }
+            setIsSyncing(false);
         }
         if (isServerRunning) {
             try {
