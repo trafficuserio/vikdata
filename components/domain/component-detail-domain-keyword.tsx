@@ -188,8 +188,9 @@ export default function DomainDetailKeyword() {
                 .catch((err) => console.error(err));
         }
     }, [domainInfo, token]);
+
     useEffect(() => {
-        if (domainInfo && token && isServerRunning) {
+        if (domainInfo && token) {
             refreshIntervalRef.current = setInterval(() => {
                 refreshData();
             }, 10000);
@@ -197,7 +198,8 @@ export default function DomainDetailKeyword() {
                 if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
             };
         }
-    }, [domainInfo, token, isServerRunning]);
+    }, [domainInfo, token]);
+
     useEffect(() => {
         axios
             .get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-list-prompt`, {
