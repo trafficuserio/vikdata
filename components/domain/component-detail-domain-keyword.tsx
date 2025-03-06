@@ -190,7 +190,7 @@ export default function DomainDetailKeyword() {
     }, [domainInfo, token]);
 
     useEffect(() => {
-        if (domainInfo && token) {
+        if (domainInfo && token && data.length > 0 && data.some((row) => row.is_done === 0)) {
             refreshIntervalRef.current = setInterval(() => {
                 refreshData();
             }, 10000);
@@ -198,7 +198,7 @@ export default function DomainDetailKeyword() {
                 if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
             };
         }
-    }, [domainInfo, token]);
+    }, [domainInfo, token, data]);
 
     useEffect(() => {
         axios
