@@ -10,13 +10,15 @@ import IconError from '@/components/icon/icon-error';
 import Link from 'next/link';
 
 interface DecodedToken {
-    sub: {
-        full_name: string;
-        user_name?: string;
-        avatar?: string;
-        role: string;
-    };
+    sub: string;
     [key: string]: any;
+}
+
+interface SubData {
+    full_name: string;
+    user_name?: string;
+    avatar?: string;
+    role: string;
 }
 
 const ComponentsAuthLoginForm = () => {
@@ -34,12 +36,15 @@ const ComponentsAuthLoginForm = () => {
 
     const saveData = (token: string) => {
         const decodedToken: DecodedToken = jwtDecode(token);
-        const { user_name } = decodedToken.sub;
+        const subData: SubData = JSON.parse(decodedToken.sub);
+        const { user_name, role } = subData;
+
+        console.log('user_name', user_name);
 
         Cookies.set('token', token, { expires: 1 });
         Cookies.set('username', user_name || '', { expires: 1 });
         Cookies.set('loginTime', Date.now().toString(), { expires: 1 });
-        Cookies.set('role', decodedToken.sub.role, { expires: 1 });
+        Cookies.set('role', role, { expires: 1 });
     };
 
     const handleLogin = async (e: any) => {

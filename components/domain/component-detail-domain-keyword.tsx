@@ -584,7 +584,6 @@ export default function DomainDetailKeyword() {
             });
         }
     };
-
     const handleSelectPrompt = (site: string, promptId: number) => {
         setSitePrompts((prev) => ({ ...prev, [site]: promptId }));
     };

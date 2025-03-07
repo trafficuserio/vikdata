@@ -21,13 +21,6 @@ const groupSiteOptions = [
     { value: 'Bán hàng', label: 'Bán hàng' },
 ];
 
-const personOptions = [
-    { value: 'Dương', label: 'Dương' },
-    { value: 'Linh', label: 'Linh' },
-    { value: 'Nguyên', label: 'Nguyên' },
-    { value: 'Khác', label: 'Khác' },
-];
-
 export default function ComponentAddDomain() {
     const router = useRouter();
     const token = Cookies.get('token');
@@ -199,13 +192,13 @@ export default function ComponentAddDomain() {
                         <label htmlFor="person" className="block mb-1 font-medium">
                             Người phụ trách <span className="text-red-500">*</span>
                         </label>
-                        <Select
+                        <input
                             id="person"
-                            placeholder="Chọn người phụ trách..."
-                            options={personOptions}
-                            value={personOptions.find((op) => op.value === person)}
-                            onChange={(val) => setPerson(val?.value || '')}
-                            className="w-full"
+                            type="text"
+                            placeholder="Nhập người phụ trách..."
+                            value={person}
+                            onChange={(e) => setPerson(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
                         />
                     </div>
                     <div>
@@ -422,7 +415,7 @@ export default function ComponentAddDomain() {
                             rows={6}
                         ></textarea>
                     </div>
-                    <div>
+                    <div className="col-span-3">
                         <label htmlFor="refreshTokenAds" className="block mb-1 font-medium">
                             Refresh Token Ads <span className="text-red-500">*</span>
                         </label>

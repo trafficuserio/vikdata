@@ -1,7 +1,7 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import axios from 'axios';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
 import Select from 'react-select';
 import { useSelector } from 'react-redux';
@@ -10,37 +10,38 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import logout from '@/utils/logout';
-
+import IconArrowUp from '@/components/icon/icon-arrow-up';
+import IconArrowDown from '@/components/icon/icon-arrow-down';
+import Link from 'next/link';
 interface RankKeyData {
     id: number;
     keyword: string;
     url_keyword: string;
-    rank_keyword: number;
-    day: string;
-    domain_id: number;
+    geolocation: string;
+    host_lang: string;
+    rank1: number;
+    rank2: number;
+    key_word_id: number;
 }
-
 interface ApiResponse {
     errorcode: number;
     message: string;
     data: {
-        count: number;
-        rows: RankKeyData[];
         totalPage: number;
+        data: RankKeyData[];
+        limit: number;
+        page: number;
     };
 }
-
 interface ComponentProps {
     startDate: Date | null;
     endDate: Date | null;
 }
-
 const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDate }) => {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const token = Cookies.get('token');
-
     const [rankKeyData, setRankKeyData] = useState<RankKeyData[]>([]);
     const [total, setTotal] = useState<number>(0);
     const [page, setPage] = useState<number>(1);
@@ -48,7 +49,6 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
     const [sortBy, setSortBy] = useState<keyof RankKeyData>('keyword');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [search, setSearch] = useState<string>('');
-
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isEdit, setIsEdit] = useState<boolean>(false);
     const [currentId, setCurrentId] = useState<number | null>(null);
@@ -56,7 +56,6 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
     const [urlKeyword, setUrlKeyword] = useState<string>('');
     const [geolocation, setGeolocation] = useState<string>('vn');
     const [hostLanguage, setHostLanguage] = useState<string>('vi');
-
     const geolocationOptions = [
         { value: 'af', label: 'af' },
         { value: 'al', label: 'al' },
@@ -298,7 +297,6 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
         { value: 'zm', label: 'zm' },
         { value: 'zw', label: 'zw' },
     ];
-
     const hostLanguageOptions = [
         { value: 'af', label: 'af' },
         { value: 'sq', label: 'sq' },
@@ -384,11 +382,7 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
         { value: 'xh', label: 'xh' },
         { value: 'zu', label: 'zu' },
     ];
-
-    const formatNumber = (value: number) => {
-        return new Intl.NumberFormat('vi-VN').format(value);
-    };
-
+    const formatNumber = (value: number) => new Intl.NumberFormat('vi-VN').format(value);
     const fetchRankKeyData = async () => {
         if (!domainId || !startDate || !endDate) return;
         setIsLoading(true);
@@ -401,31 +395,46 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                 page: page.toString(),
                 limit: limit.toString(),
             });
-            const url = `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-data-rank-keyword-by-domain-id?${params.toString()}`;
-            const response = await fetch(url, {
-                method: 'GET',
+            const urlRank = `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-data-rank-keyword-by-domain-id?${params.toString()}`;
+            const rankResponse = await axios.get<ApiResponse>(urlRank, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
             });
-            if (!response.ok) {
-                throw new Error('Lỗi khi lấy dữ liệu từ API');
-            }
-            const result: ApiResponse = await response.json();
-            if ([401, 403].includes(result.errorcode)) {
-                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
-                logout();
-                return;
-            } else if (result.errorcode !== 200) {
-                throw new Error(result.message || 'Lỗi không xác định');
-            }
-            let data = result.data.rows;
+            const dataRank: RankKeyData[] = rankResponse.data.data.data;
+            const urlInfor = `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/get-list-infor-keyword?page=1&limit=1000`;
+            const inforResponse = await axios.get(urlInfor, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const dataInforRaw = inforResponse?.data?.data?.rows || [];
+            const dataInfor: RankKeyData[] = dataInforRaw.map((item: any) => ({
+                id: item.id,
+                keyword: item.keyword,
+                url_keyword: item.url_keyword,
+                geolocation: item.geolocation,
+                host_lang: item.host_language,
+                rank1: 0,
+                rank2: 0,
+                key_word_id: item.id,
+            }));
+            const mergedData: RankKeyData[] = [...dataRank];
+            const isDuplicate = (a: RankKeyData, b: RankKeyData) => a.keyword === b.keyword && a.url_keyword === b.url_keyword && a.geolocation === b.geolocation && a.host_lang === b.host_lang;
+            dataInfor.forEach((item) => {
+                const found = dataRank.find((r) => isDuplicate(r, item));
+                if (!found) {
+                    mergedData.push(item);
+                }
+            });
+            let filteredData = mergedData;
             if (search.trim() !== '') {
                 const searchLower = search.toLowerCase();
-                data = data.filter((item) => item.keyword.toLowerCase().includes(searchLower));
+                filteredData = mergedData.filter((item) => item.keyword.toLowerCase().includes(searchLower));
             }
-            data.sort((a, b) => {
+            filteredData.sort((a, b) => {
                 const aValue = a[sortBy];
                 const bValue = b[sortBy];
                 if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -434,37 +443,25 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                 if (typeof aValue === 'number' && typeof bValue === 'number') {
                     return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
                 }
-                if (sortBy === 'day') {
-                    const aDate = dayjs(aValue).unix();
-                    const bDate = dayjs(bValue).unix();
-                    return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
-                }
                 return 0;
             });
-            setRankKeyData(data);
-            setTotal(result.data.count);
+            setRankKeyData(filteredData);
+            setTotal(filteredData.length);
         } catch (err: any) {
-            console.error('Error fetching rank key data:', err);
             setError(err.message || 'Lỗi khi lấy dữ liệu');
         } finally {
             setIsLoading(false);
         }
     };
-
     const searchParams = useSearchParams();
     const domainIdParam = searchParams.get('id');
     const domainId = domainIdParam ? parseInt(domainIdParam, 10) : null;
     const router = useRouter();
-
-    async function insertInforKeyword() {
+    const insertInforKeyword = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/insert-infor-keyword`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/insert-infor-keyword`,
+                {
                     dataKeyword: [
                         {
                             keyword,
@@ -474,54 +471,58 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                         },
                     ],
                     domainId: domainId,
-                }),
-            });
-            const result = await response.json();
-            if (result.errorcode === 200) {
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            if (response.data.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Thêm dữ liệu thành công' });
-            } else if ([401, 403].includes(result.errorcode)) {
+            } else if ([401, 403].includes(response.data.errorcode)) {
                 ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
                 logout();
             } else {
-                ShowMessageError({ content: result.message || 'Lỗi khi thêm dữ liệu' });
+                ShowMessageError({ content: response.data.message || 'Lỗi khi thêm dữ liệu' });
             }
-        } catch (error) {
+        } catch {
             ShowMessageError({ content: 'Lỗi khi gọi API thêm dữ liệu' });
         }
-    }
-
-    async function updateInforKeyword() {
+    };
+    const updateInforKeyword = async () => {
         if (!keyword.trim() || !urlKeyword.trim() || !currentId) {
             ShowMessageError({ content: 'Vui lòng điền đầy đủ các trường bắt buộc.' });
             return;
         }
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/update-infor-keyword`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/update-infor-keyword`,
+                {
                     id: currentId,
                     keyword,
                     urlKeyword,
-                }),
-            });
-            const result = await response.json();
-            if (result.errorcode === 200) {
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            if (response.data.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Cập nhật dữ liệu thành công' });
-            } else if ([401, 403].includes(result.errorcode)) {
+            } else if ([401, 403].includes(response.data.errorcode)) {
                 ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
                 logout();
             } else {
-                ShowMessageError({ content: result.message || 'Lỗi khi cập nhật dữ liệu' });
+                ShowMessageError({ content: response.data.message || 'Lỗi khi cập nhật dữ liệu' });
             }
         } catch {
             ShowMessageError({ content: 'Lỗi khi gọi API cập nhật dữ liệu' });
         }
-    }
-
+    };
     const handleSubmit = async () => {
         if (isEdit) {
             await updateInforKeyword();
@@ -531,11 +532,36 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
         setShowModal(false);
         fetchRankKeyData();
     };
-
+    const handleDeleteSingle = async (id: number) => {
+        if (!window.confirm('Bạn có chắc muốn xóa?')) return;
+        try {
+            const res = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/delete-infor-keyword`,
+                { id: [id] },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            if ([401, 403].includes(res.data.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout();
+                return;
+            } else if (res.data.errorcode === 200) {
+                ShowMessageSuccess({ content: 'Xóa thành công!' });
+                fetchRankKeyData();
+            } else {
+                ShowMessageError({ content: 'Xóa thất bại!' });
+            }
+        } catch {
+            ShowMessageError({ content: 'Lỗi khi xóa' });
+        }
+    };
     useEffect(() => {
         fetchRankKeyData();
     }, [domainId, startDate, endDate, page, limit, sortBy, sortOrder, search]);
-
     const columns: DataTableColumn<RankKeyData>[] = [
         { accessor: 'keyword', title: 'Từ khóa', sortable: true },
         {
@@ -548,21 +574,49 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                 </a>
             ),
         },
-        { accessor: 'day', title: 'Ngày', sortable: true, render: ({ day }) => dayjs(day).format('DD/MM/YYYY') },
-        // { accessor: 'geolocation', title: 'Geolocation', sortable: true, render: ({ geolocation }) => formatNumber(geolocation) },
-        // { accessor: 'host_lang', title: 'Host Lang', sortable: true, render: ({ host_lang }) => formatNumber(host_lang) },
-        { accessor: 'rank_keyword', title: 'Thứ hạng', sortable: true, render: ({ rank_keyword }) => formatNumber(rank_keyword) },
-
+        {
+            accessor: 'geolocation',
+            title: 'Geolocation',
+            sortable: false,
+        },
+        {
+            accessor: 'host_lang',
+            title: 'Host Language',
+            sortable: false,
+        },
+        {
+            accessor: 'rank1',
+            title: 'Thứ hạng',
+            sortable: true,
+            render: ({ rank1, rank2 }) => (
+                <div className="flex items-center gap-1">
+                    {rank1 < rank2 ? (
+                        <>
+                            <span>{formatNumber(rank1)}</span>
+                            <IconArrowUp className="text-success" />
+                        </>
+                    ) : rank1 > rank2 ? (
+                        <>
+                            <span>{formatNumber(rank1)}</span>
+                            <IconArrowDown className="text-danger" />
+                        </>
+                    ) : (
+                        '-'
+                    )}
+                </div>
+            ),
+        },
         {
             accessor: 'action',
             title: 'Hành động',
             textAlignment: 'center',
             render: (record) => (
-                <div className="justify-center flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
+                    <Link href={`/domain/keyword/detail?id=${record.key_word_id}`}>Chi tiết</Link>
                     <button
                         onClick={() => {
                             setIsEdit(true);
-                            setCurrentId(record.id);
+                            setCurrentId(record.key_word_id);
                             setKeyword(record.keyword);
                             setUrlKeyword(record.url_keyword);
                             setShowModal(true);
@@ -578,34 +632,6 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
             ),
         },
     ];
-
-    async function handleDeleteSingle(id: number) {
-        if (!window.confirm('Bạn có chắc muốn xóa?')) return;
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-keyword/delete-infor-keyword`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ id: [id] }),
-            });
-            const json = await res.json();
-            if ([401, 403].includes(json.errorcode)) {
-                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
-                logout();
-                return;
-            } else if (json?.errorcode === 200) {
-                ShowMessageSuccess({ content: 'Xóa thành công!' });
-                fetchRankKeyData();
-            } else {
-                ShowMessageError({ content: 'Xóa thất bại!' });
-            }
-        } catch {
-            ShowMessageError({ content: 'Lỗi khi xóa' });
-        }
-    }
-
     return (
         <div>
             {isLoading && (
@@ -720,5 +746,4 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
         </div>
     );
 };
-
 export default ComponentReadDomainRankKey;

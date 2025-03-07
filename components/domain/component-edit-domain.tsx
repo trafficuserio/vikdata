@@ -22,13 +22,6 @@ const groupSiteOptions = [
     { value: 'Bán hàng', label: 'Bán hàng' },
 ];
 
-const personOptions = [
-    { value: 'Dương', label: 'Dương' },
-    { value: 'Linh', label: 'Linh' },
-    { value: 'Nguyên', label: 'Nguyên' },
-    { value: 'Khác', label: 'Khác' },
-];
-
 interface KeyAnalytics {
     type: string;
     project_id: string;
@@ -377,13 +370,13 @@ export default function ComponentEditDomain() {
                         <label htmlFor="person" className="block mb-1 font-medium">
                             Người phụ trách <span className="text-red-500">*</span>
                         </label>
-                        <Select
+                        <input
                             id="person"
-                            placeholder="Chọn người phụ trách..."
-                            options={personOptions}
-                            value={personOptions.find((op) => op.value === person)}
-                            onChange={(val) => setPerson(val?.value || '')}
-                            className="w-full"
+                            type="text"
+                            placeholder="Nhập người phụ trách..."
+                            value={person}
+                            onChange={(e) => setPerson(e.target.value)}
+                            className="w-full border p-2 rounded form-input"
                         />
                     </div>
                     <div>
@@ -603,7 +596,7 @@ export default function ComponentEditDomain() {
                 </div>
                 <div className="mt-6">
                     <label htmlFor="refreshTokenAds" className="block mb-1 font-medium">
-                        Refesh Token <span className="text-red-500">*</span>
+                        Refresh Token Ads <span className="text-red-500">*</span>
                     </label>
                     <input
                         id="refreshTokenAds"
