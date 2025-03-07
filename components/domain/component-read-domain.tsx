@@ -14,7 +14,6 @@ import ComponentReadDomainAnalytics from '@/components/domain/component-read-dom
 import ComponentReadDomainGoogleSearchConsole from '@/components/domain/component-read-domain-google-search-console';
 import ComponentReadDomainAdsense from '@/components/domain/component-read-domain-adsense';
 import ComponentReadDomainInfo from '@/components/domain/component-read-domain-info';
-import ComponentReadDomainRankKey from '@/components/domain/component-read-domain-rank-key';
 import ComponentListKeyword from '@/components/domain/keyword/component-list-keyword';
 import dayjs from 'dayjs';
 
