@@ -9,7 +9,7 @@ import { ShowMessageError } from '@/components/component-show-message';
 import logout from '@/utils/logout';
 import IconEdit from '@/components/icon/icon-edit';
 import he from 'he';
-import { Modal, Tooltip } from '@mantine/core';
+import { Modal, Tooltip, Button } from '@mantine/core';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
@@ -40,9 +40,11 @@ interface Option {
 
 const PostList: React.FC = () => {
     const [posts, setPosts] = useState<Post[]>([]);
+    const [selectedPosts, setSelectedPosts] = useState<Post[]>([]);
     const [domainInfo, setDomainInfo] = useState<DomainInfo | null>(null);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<Option>({ value: '', label: 'Tất cả danh mục' });
+    const [isLoading, setIsLoading] = useState(false);
 
     const searchParams = useSearchParams();
     const domainId = searchParams.get('id');
@@ -75,6 +77,8 @@ const PostList: React.FC = () => {
 
     useEffect(() => {
         if (domainInfo && domainInfo.domain) {
+            setIsLoading(true);
+
             axios
                 .get<Post[]>(`https://${domainInfo.domain}/wp-json/custom/v1/get-posts`)
                 .then((response) => {
@@ -85,12 +89,24 @@ const PostList: React.FC = () => {
                         description: he.decode(post.description),
                     }));
                     setPosts(decodedPosts);
+                    setIsLoading(false);
                 })
                 .catch((error) => {
+                    setIsLoading(false);
                     console.error('Lỗi khi lấy dữ liệu bài viết:', error);
                 });
         }
     }, [domainInfo]);
+
+    const showDeletingModal = () => {
+        Swal.fire({
+            title: 'Đang xóa...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+        });
+    };
 
     const handleDelete = async (post: Post) => {
         if (!domainInfo) {
@@ -98,6 +114,7 @@ const PostList: React.FC = () => {
             return;
         }
         try {
+            showDeletingModal(); // Hiển thị modal "Đang xóa..."
             const token = Cookies.get('token');
             const serverResponse = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/get-server-infors`, {
                 params: { limit: 100, offset: 0, byOder: 'ASC' },
@@ -106,6 +123,7 @@ const PostList: React.FC = () => {
             const servers = serverResponse.data.data || [];
             if (!servers.length) {
                 console.error('Không có server khả dụng');
+                Swal.close();
                 return;
             }
             const availableServer = servers[0];
@@ -130,6 +148,55 @@ const PostList: React.FC = () => {
             setPosts((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
         } catch (error) {
             console.error('Lỗi khi xóa bài viết:', error);
+        } finally {
+            Swal.close(); // Đóng modal khi hoàn thành
+        }
+    };
+
+    const handleMultiDelete = async () => {
+        if (!domainInfo || selectedPosts.length === 0) {
+            console.error('Không có thông tin domain hoặc không có bài nào được chọn');
+            return;
+        }
+        try {
+            showDeletingModal(); // Hiển thị modal "Đang xóa..."
+            const token = Cookies.get('token');
+            const serverResponse = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/get-server-infors`, {
+                params: { limit: 100, offset: 0, byOder: 'ASC' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            });
+            const servers = serverResponse.data.data || [];
+            if (!servers.length) {
+                console.error('Không có server khả dụng');
+                Swal.close();
+                return;
+            }
+            const availableServer = servers[0];
+            const deleteUrl = `${availableServer.domain_server}/api/site/delete_posts`;
+
+            const payload = {
+                post_data: selectedPosts.map((post) => ({
+                    post_id: post.id,
+                    primary_key: post.primary_key || null,
+                })),
+                username: domainInfo.user_aplication,
+                password: domainInfo.password_aplication,
+                url: 'https://' + domainInfo.domain,
+            };
+
+            const deleteResponse = await axios.post(deleteUrl, payload, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            console.log('Multi delete response:', deleteResponse.data);
+            // Cập nhật lại danh sách posts sau khi xóa
+            const deletedIds = selectedPosts.map((post) => post.id);
+            setPosts((prevPosts) => prevPosts.filter((p) => !deletedIds.includes(p.id)));
+            // Xóa danh sách đã chọn
+            setSelectedPosts([]);
+        } catch (error) {
+            console.error('Lỗi khi xóa nhiều bài viết:', error);
+        } finally {
+            Swal.close(); // Đóng modal khi hoàn thành
         }
     };
 
@@ -144,6 +211,21 @@ const PostList: React.FC = () => {
         }).then((result) => {
             if (result.isConfirmed) {
                 handleDelete(post);
+            }
+        });
+    };
+
+    const confirmMultiDelete = () => {
+        MySwal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc chắn muốn xóa các bài viết đã chọn không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Có, xóa chúng!',
+            cancelButtonText: 'Hủy',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                handleMultiDelete();
             }
         });
     };
@@ -294,15 +376,34 @@ const PostList: React.FC = () => {
                 <div className="custom-select" style={{ width: 200 }}>
                     <Select options={categoryOptions} value={selectedCategory} onChange={(option) => option && setSelectedCategory(option)} isClearable={false} placeholder="Chọn danh mục" />
                 </div>
+                {selectedPosts.length > 0 && (
+                    <Button color="red" onClick={confirmMultiDelete}>
+                        Xóa các bài viết đã chọn ({selectedPosts.length})
+                    </Button>
+                )}
             </div>
+
             <div className="panel p-0 overflow-hidden">
-                <div className="invoice-table">
-                    <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
-                        <div style={{ position: 'relative', height: '70vh', overflow: 'hidden' }} className="datatables pagination-padding">
-                            <DataTable className="table-hover whitespace-nowrap custom-datatable" columns={columns} records={filteredPosts} highlightOnHover />
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                        <span className="inline-block h-6 w-6 animate-spin rounded-full border-[3px] border-transparent border-l-primary"></span>
+                    </div>
+                ) : (
+                    <div className="invoice-table">
+                        <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
+                            <div style={{ position: 'relative', height: '70vh', overflow: 'hidden' }} className="datatables pagination-padding">
+                                <DataTable
+                                    className="table-hover whitespace-nowrap custom-datatable"
+                                    columns={columns}
+                                    records={filteredPosts}
+                                    highlightOnHover
+                                    selectedRecords={selectedPosts}
+                                    onSelectedRecordsChange={setSelectedPosts}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </>
     );

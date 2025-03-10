@@ -39,6 +39,7 @@ export default function DomainDetailKeyword() {
     const [uniqueSites, setUniqueSites] = useState<string[]>([]);
     const [sitePrompts, setSitePrompts] = useState<{ [key: string]: number }>({});
     const [promptList, setPromptList] = useState<any[]>([]);
+    const [myMoney, setMyMoney] = useState<number>(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [page, setPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(10);
@@ -58,6 +59,7 @@ export default function DomainDetailKeyword() {
     const paginatedRecords = filteredAndSortedRecords.slice((page - 1) * pageSize, page * pageSize);
     const MySwal = withReactContent(Swal);
     const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const typeSiteMapping: { [key: string]: string } = {
         'Tất cả': 'tatca',
@@ -79,6 +81,26 @@ export default function DomainDetailKeyword() {
     };
 
     useEffect(() => {
+        if (token) {
+            axios
+                .get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-money`, {
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                })
+                .then((response) => {
+                    const json = response.data;
+                    if ([401, 403].includes(json.errorcode)) {
+                        ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                        logout();
+                        return;
+                    } else if (json.errorcode === 200) {
+                        setMyMoney(json.data.money);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [token]);
+
+    useEffect(() => {
         if (domainId && token) {
             axios
                 .get(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id`, {
@@ -98,8 +120,10 @@ export default function DomainDetailKeyword() {
                 .catch(() => {});
         }
     }, [domainId, token]);
+
     useEffect(() => {
         if (domainInfo?.domain) {
+            setIsLoading(true);
             const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
             axios
                 .get(apiUrl, {
@@ -116,14 +140,17 @@ export default function DomainDetailKeyword() {
                         setImportedExcelData(resData);
                         setIsImported(true);
                     }
+                    setIsLoading(false);
                 })
                 .catch((error) => {
                     console.error('Error fetching data:', error);
                     setImportedExcelData([]);
                     setIsImported(false);
+                    setIsLoading(false);
                 });
         }
     }, [domainInfo?.domain, token]);
+
     useEffect(() => {
         if (domainInfo?.domain) {
             axios
@@ -179,13 +206,11 @@ export default function DomainDetailKeyword() {
             clearInterval(refreshIntervalRef.current);
             refreshIntervalRef.current = null;
         }
-
         if (domainInfo && token && isSyncing) {
             refreshIntervalRef.current = setInterval(async () => {
                 await refreshData();
             }, 5000);
         }
-
         return () => {
             if (refreshIntervalRef.current) {
                 clearInterval(refreshIntervalRef.current);
@@ -210,9 +235,28 @@ export default function DomainDetailKeyword() {
                 console.error('Error fetching prompt list:', error);
             });
     }, [token]);
+
+    useEffect(() => {
+        if (uniqueSites.length > 0 && promptList.length > 0) {
+            setSitePrompts((prev) => {
+                const newSitePrompts = { ...prev };
+                uniqueSites.forEach((site) => {
+                    if (!newSitePrompts[site]) {
+                        const promptsForSite = promptList.filter((p) => displayMapping[p.typeSite.trim().toLowerCase()] === site);
+                        if (promptsForSite.length > 0) {
+                            newSitePrompts[site] = promptsForSite[0].id;
+                        }
+                    }
+                });
+                return newSitePrompts;
+            });
+        }
+    }, [uniqueSites, promptList]);
+
     const handleImportFileExcel = () => {
         fileInputRef.current?.click();
     };
+
     const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -235,22 +279,24 @@ export default function DomainDetailKeyword() {
         };
         reader.readAsBinaryString(file);
     };
-    const renderProgressBar = () => (
-        <div className="flex flex-row items-center gap-2 w-[400px] mx-auto justify-center">
-            <div className="text-center text-lg font-semibold text-primary">{progressPercentage.toFixed(0)}%</div>
-            <div className="w-full max-w-md relative">
-                <div
-                    className="animated-progress h-3 rounded-full bg-primary relative z-10"
-                    style={{
-                        width: `${progressPercentage}%`,
-                        backgroundImage: 'linear-gradient(45deg,hsla(0,0%,100%,.15) 25%,transparent 0,transparent 50%,hsla(0,0%,100%,.15) 0,hsla(0,0%,100%,.15) 75%,transparent 0,transparent)',
-                        backgroundSize: '1rem 1rem',
-                    }}
-                ></div>
-                <div className="absolute top-0 left-0 w-full h-full bg-primary opacity-50 z-0 rounded-full"></div>
+
+    const renderProgressBar = () =>
+        progressPercentage < 100 && (
+            <div className="flex flex-row items-center gap-2 w-[400px] mx-auto justify-center">
+                <div className="text-center text-lg font-semibold text-primary">{progressPercentage.toFixed(0)}%</div>
+                <div className="w-full max-w-md relative">
+                    <div
+                        className="animated-progress h-3 rounded-full bg-primary relative z-10"
+                        style={{
+                            width: `${progressPercentage}%`,
+                            backgroundImage: 'linear-gradient(45deg,hsla(0,0%,100%,.15) 25%,transparent 0,transparent 50%,hsla(0,0%,100%,.15) 0,hsla(0,0%,100%,.15) 75%,transparent 0,transparent)',
+                            backgroundSize: '1rem 1rem',
+                        }}
+                    ></div>
+                    <div className="absolute top-0 left-0 w-full h-full bg-primary opacity-50 z-0 rounded-full"></div>
+                </div>
             </div>
-        </div>
-    );
+        );
     const renderStepBar = () => {
         return (
             <div className="w-full mb-8">
@@ -268,6 +314,7 @@ export default function DomainDetailKeyword() {
             </div>
         );
     };
+
     const refreshData = async () => {
         if (!domainInfo) return;
         const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
@@ -278,14 +325,11 @@ export default function DomainDetailKeyword() {
             const newData = response.data;
             if (newData) {
                 setData(newData);
-
                 const rowsIsDoing = newData.filter((row: any) => row.processing === 'is_doing');
                 const total = rowsIsDoing.length;
                 const completed = rowsIsDoing.filter((row: any) => Number(row.is_done) === 1).length;
                 const progress = total > 0 ? (completed / total) * 100 : 100;
-
                 setProgressPercentage(progress);
-
                 if (progress >= 100) {
                     if (refreshIntervalRef.current) {
                         clearInterval(refreshIntervalRef.current);
@@ -304,71 +348,33 @@ export default function DomainDetailKeyword() {
             }
             setIsSyncing(false);
         }
-        if (isServerRunning) {
+        if (isServerRunning && activeServer) {
             try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/get-server-infors`, {
-                    params: { limit: 100, offset: 0, byOder: 'ASC' },
+                const response = await axios.get(`${activeServer.url}/api/site/status`, {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    timeout: 3000,
                 });
-                const servers = response.data.data || [];
-                const serverStatusPromises = servers.map((server: any) => {
-                    const serverUrl = server.domain_server;
-                    const serverObj: ServerStatus = {
-                        id: server.id,
-                        url: serverUrl,
-                        loading: true,
-                        is_running: false,
-                        has_temp: null,
-                        timedOut: false,
-                        domain_id: server.domain_id,
-                    };
-                    return axios
-                        .get(`${serverUrl}/api/site/status`, {
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            timeout: 3000,
-                        })
-                        .then((res) => {
-                            const status = res.data;
-                            return { ...serverObj, is_running: status.is_running, loading: false };
-                        })
-                        .catch(() => {
-                            return { ...serverObj, is_running: false, loading: false, timedOut: true };
-                        });
-                });
-                Promise.all(serverStatusPromises).then((updatedServers) => {
-                    setServerData(updatedServers);
-                    const syncingServer = updatedServers.find((s) => s.is_running && Number(s.domain_id) === Number(domainInfo.id));
-                    if (syncingServer) {
-                        setActiveServer(syncingServer);
-                        setIsServerRunning(true);
-                        setIsSyncing(true);
-                    } else {
-                        setIsServerRunning(false);
-                        setIsSyncing(false);
-                    }
-                });
+                const status = response.data;
+                const updatedActive = { ...activeServer, is_running: status.is_running, loading: false };
+                setActiveServer(updatedActive);
+                setServerData((prev) => prev.map((item) => (item.id === updatedActive.id ? updatedActive : item)));
+                if (updatedActive.is_running) {
+                    setIsServerRunning(true);
+                    setIsSyncing(true);
+                } else {
+                    setIsServerRunning(false);
+                    setIsSyncing(false);
+                }
             } catch (err) {
                 console.error(err);
+                // const updatedActive = { ...activeServer, is_running: false, loading: false, timedOut: true };
+                // setActiveServer(updatedActive);
+                // setServerData((prev) => prev.map((item) => (item.id === updatedActive.id ? updatedActive : item)));
+                // setIsServerRunning(false);
+                // setIsSyncing(false);
             }
         }
     };
-
-    useEffect(() => {
-        if (uniqueSites.length > 0 && promptList.length > 0) {
-            setSitePrompts((prev) => {
-                const newSitePrompts = { ...prev };
-                uniqueSites.forEach((site) => {
-                    if (!newSitePrompts[site]) {
-                        const promptsForSite = promptList.filter((p) => displayMapping[p.typeSite.trim().toLowerCase()] === site);
-                        if (promptsForSite.length > 0) {
-                            newSitePrompts[site] = promptsForSite[0].id;
-                        }
-                    }
-                });
-                return newSitePrompts;
-            });
-        }
-    }, [uniqueSites, promptList]);
 
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
@@ -407,6 +413,18 @@ export default function DomainDetailKeyword() {
         formData.append('max_workers', '4');
         formData.append('username', domainInfo.user_aplication);
         formData.append('password', domainInfo.password_aplication);
+        const totalCost = importedExcelData.reduce((sum: number, row: any) => {
+            if (row['Từ khoá chính'] && row['Từ khoá chính'].trim() !== '') {
+                const site = row['Site'];
+                const promptId = sitePrompts[site];
+                const prompt = promptList.find((p: any) => p.id === promptId);
+                if (prompt) {
+                    return sum + Number(prompt.money);
+                }
+            }
+            return sum;
+        }, 0);
+        formData.append('money', String(totalCost));
         const availableServer = activeServer
             ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
             : serverData.find((item) => !item.is_running && !item.timedOut);
@@ -436,6 +454,7 @@ export default function DomainDetailKeyword() {
         setData([]);
         if (!isServerRunning) setProgressPercentage(0);
     };
+
     const handleRewrite = async (row: any) => {
         if (!domainInfo || isSyncing) return;
         setIsServerRunning(true);
@@ -531,7 +550,6 @@ export default function DomainDetailKeyword() {
             ShowMessageError({ content: 'Không có server nào được chọn' });
             return;
         }
-
         const result = await MySwal.fire({
             title: 'Xác nhận',
             text: 'Bạn có chắc chắn muốn xóa dữ liệu không?',
@@ -540,9 +558,7 @@ export default function DomainDetailKeyword() {
             confirmButtonText: 'Xác nhận',
             cancelButtonText: 'Hủy',
         });
-
         if (!result.isConfirmed) return;
-
         MySwal.fire({
             title: 'Đang xử lý...',
             text: 'Vui lòng đợi trong giây lát.',
@@ -551,7 +567,6 @@ export default function DomainDetailKeyword() {
                 MySwal.showLoading();
             },
         });
-
         try {
             await axios.post(
                 `${serverUrl}/api/site/delete`,
@@ -564,10 +579,8 @@ export default function DomainDetailKeyword() {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 },
             );
-
             setServerData((prev) => prev.map((item) => (item.url === serverUrl ? { ...item, has_temp: undefined } : item)));
             setData([]);
-
             MySwal.fire({
                 title: 'Thành công',
                 text: 'Dữ liệu tạm đã được xóa.',
@@ -587,7 +600,39 @@ export default function DomainDetailKeyword() {
     const handleSelectPrompt = (site: string, promptId: number) => {
         setSitePrompts((prev) => ({ ...prev, [site]: promptId }));
     };
-
+    const handleConfirmPayment = async () => {
+        let totalCost = 0;
+        importedExcelData.forEach((row: any) => {
+            if (row['Từ khoá chính']) {
+                const site = row['Site'];
+                const promptId = sitePrompts[site];
+                const prompt = promptList.find((p) => p.id === promptId);
+                if (prompt) {
+                    totalCost += Number(prompt.money);
+                }
+            }
+        });
+        const result = await MySwal.fire({
+            title: 'Xác nhận thanh toán',
+            html: `Số tiền cần thanh toán: <strong>${totalCost}</strong>`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Thanh toán',
+            cancelButtonText: 'Hủy',
+        });
+        if (result.isConfirmed) {
+            if (myMoney >= totalCost) {
+                handleRun();
+            } else {
+                MySwal.fire({
+                    title: 'Lỗi',
+                    text: 'Số dư không đủ',
+                    icon: 'error',
+                    confirmButtonText: 'Đóng',
+                });
+            }
+        }
+    };
     return (
         <div className="invoice-table">
             <div className="mb-4.5 flex flex-col gap-5 md:flex-row justify-between items-start">
@@ -668,7 +713,11 @@ export default function DomainDetailKeyword() {
             </div>
             {isServerRunning && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
             <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
-                {!isImported ? (
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-96">
+                        <span className="inline-block h-6 w-6 animate-spin rounded-full border-[3px] border-transparent border-l-primary"></span>
+                    </div>
+                ) : !isImported ? (
                     <button className="flex flex-col items-center justify-center py-20 mx-auto" onClick={handleImportFileExcel} disabled={isServerRunning}>
                         <img src="/assets/images/upload.svg" alt="Upload Excel" className="mb-4" />
                         <p>Nhấn để tải lên file Excel</p>
@@ -842,7 +891,6 @@ export default function DomainDetailKeyword() {
                 size="90%"
             >
                 <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[80%] z-10">{renderStepBar()}</div>
-
                 {currentStep === 1 ? (
                     <>
                         <div className="flex items-center justify-between w-full mb-2">
@@ -961,7 +1009,12 @@ export default function DomainDetailKeyword() {
                             >
                                 Quay lại
                             </button>
-                            <button type="button" className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`} onClick={handleRun} disabled={isServerRunning}>
+                            <button
+                                type="button"
+                                className={`btn gap-2 ${isServerRunning ? 'bg-gray-400 cursor-not-allowed' : 'btn-primary'}`}
+                                onClick={handleConfirmPayment}
+                                disabled={isServerRunning}
+                            >
                                 Xác nhận
                             </button>
                         </>

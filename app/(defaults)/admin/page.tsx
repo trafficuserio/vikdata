@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 import React from 'react';
-import ComponentListAccount from '@/components/admin/component-list-account';
+import ComponentsFullAccount from '@/components/admin/component-full-account';
 
 export const metadata: Metadata = {
     title: 'Danh sách tài khoản',
 };
 
 const Domain = () => {
-    return <ComponentListAccount />;
+    return <ComponentsFullAccount />;
 };
 
 export default Domain;

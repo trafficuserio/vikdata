@@ -103,21 +103,34 @@ const Header = () => {
 
     useEffect(() => {
         if (token) {
-            axios
-                .get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-money`, {
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                })
-                .then((response) => {
-                    const json = response.data;
-                    if ([401, 403].includes(json.errorcode)) {
-                        ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
-                        logout();
-                        return;
-                    } else if (json.errorcode === 200) {
-                        setMyMoney(json.data.money);
-                    }
-                })
-                .catch(() => {});
+            const fetchMoney = () => {
+                axios
+                    .get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-money`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
+                    })
+                    .then((response) => {
+                        const json = response.data;
+                        if ([401, 403].includes(json.errorcode)) {
+                            ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                            logout();
+                            return;
+                        } else if (json.errorcode === 200) {
+                            setMyMoney(json.data.money);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                    });
+            };
+
+            fetchMoney();
+
+            const intervalId = setInterval(fetchMoney, 20000);
+
+            return () => clearInterval(intervalId);
         }
     }, [token]);
 
@@ -128,7 +141,7 @@ const Header = () => {
                     <div className="horizontal-logo flex items-center justify-between ltr:mr-2 rtl:ml-2 lg:hidden">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
                             <img className="inline w-8 ltr:-ml-1 rtl:-mr-1" src="/assets/images/logo.svg" alt="logo" />
-                            <span className="hidden align-middle text-2xl  font-semibold  transition-all duration-300 ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light md:inline">VIKDATA</span>
+                            <span className="hidden align-middle text-2xl font-semibold  transition-all duration-300 ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light md:inline">VIKDATA</span>
                         </Link>
                         <button
                             type="button"
@@ -140,7 +153,7 @@ const Header = () => {
                     </div>
 
                     <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2 justify-end">
-                        <span className={`text-sm badge bg-primary`}>{formatNumber(myMoney) + ' Vik'}</span>
+                        <span className={`text-sm badge bg-primary px-4 py-1`}>{formatNumber(myMoney) + ' Vik'}</span>
 
                         <div>
                             {themeConfig.theme === 'light' ? (
@@ -202,13 +215,13 @@ const Header = () => {
                                     <li>
                                         <Link href="/users/profile" className="dark:hover:text-white">
                                             <IconUser className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
-                                            Profile
+                                            Thông tin
                                         </Link>
                                     </li>
                                     <li className="border-t border-white-light dark:border-white-light/10">
                                         <button className="!py-3 text-danger" onClick={handleLogout}>
                                             <IconLogout className="h-4.5 w-4.5 shrink-0 rotate-90 ltr:mr-2 rtl:ml-2" />
-                                            Sign Out
+                                            Đăng xuất
                                         </button>
                                     </li>
                                 </ul>
