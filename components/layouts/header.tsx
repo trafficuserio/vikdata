@@ -37,6 +37,7 @@ import logout from '@/utils/logout';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import { ShowMessageError } from '@/components/component-show-message';
+import { fetchMoney } from '@/utils/fetchMoney';
 
 const Header = () => {
     const router = useRouter();
@@ -103,36 +104,9 @@ const Header = () => {
 
     useEffect(() => {
         if (token) {
-            const fetchMoney = () => {
-                axios
-                    .get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-money`, {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`,
-                        },
-                    })
-                    .then((response) => {
-                        const json = response.data;
-                        if ([401, 403].includes(json.errorcode)) {
-                            ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
-                            logout();
-                            return;
-                        } else if (json.errorcode === 200) {
-                            setMyMoney(json.data.money);
-                        }
-                    })
-                    .catch((error) => {
-                        console.error(error);
-                    });
-            };
-
-            fetchMoney();
-
-            const intervalId = setInterval(fetchMoney, 20000);
-
-            return () => clearInterval(intervalId);
+            fetchMoney(token, setMyMoney);
         }
-    }, [token]);
+    }, []);
 
     return (
         <header className={`z-40 ${themeConfig.semidark && themeConfig.menu === 'horizontal' ? 'dark' : ''}`}>

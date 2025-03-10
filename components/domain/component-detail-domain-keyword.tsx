@@ -15,6 +15,7 @@ import 'tippy.js/dist/tippy.css';
 import 'flatpickr/dist/flatpickr.css';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
+import { fetchMoney } from '@/utils/fetchMoney';
 
 interface ServerStatus {
     id: number;
@@ -367,11 +368,6 @@ export default function DomainDetailKeyword() {
                 }
             } catch (err) {
                 console.error(err);
-                // const updatedActive = { ...activeServer, is_running: false, loading: false, timedOut: true };
-                // setActiveServer(updatedActive);
-                // setServerData((prev) => prev.map((item) => (item.id === updatedActive.id ? updatedActive : item)));
-                // setIsServerRunning(false);
-                // setIsSyncing(false);
             }
         }
     };
@@ -441,9 +437,13 @@ export default function DomainDetailKeyword() {
                 formData.append('serverId', String(availableServer.id));
                 formData.append('domainId', String(domainInfo.id));
                 formData.append('currentAPI', process.env.NEXT_PUBLIC_URL_API || '');
-                await axios.post(`${availableServer.url}/api/site`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
-                });
+                await axios
+                    .post(`${availableServer.url}/api/site`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
+                    })
+                    .then(() => {
+                        if (token) fetchMoney(token, setMyMoney);
+                    });
             } catch (error) {
                 console.error('Lỗi khi đồng bộ dữ liệu:', error);
                 setIsServerRunning(false);
@@ -581,6 +581,8 @@ export default function DomainDetailKeyword() {
             );
             setServerData((prev) => prev.map((item) => (item.url === serverUrl ? { ...item, has_temp: undefined } : item)));
             setData([]);
+            setSelectedRecords([]);
+
             MySwal.fire({
                 title: 'Thành công',
                 text: 'Dữ liệu tạm đã được xóa.',
@@ -665,10 +667,11 @@ export default function DomainDetailKeyword() {
                                         serverData.map((item) => (
                                             <li
                                                 key={item.url}
-                                                className={`p-2 ${!item.is_running ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer' : 'cursor-not-allowed'} ${
-                                                    activeServer?.url === item.url && 'bg-gray-200 dark:bg-gray-700'
-                                                }`}
+                                                className={`p-2 ${
+                                                    isSyncing ? 'cursor-not-allowed' : !item.is_running ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer' : 'cursor-not-allowed'
+                                                } ${activeServer?.url === item.url && 'bg-gray-200 dark:bg-gray-700'}`}
                                                 onClick={() => {
+                                                    if (isSyncing) return;
                                                     if (!item.is_running) {
                                                         setActiveServer(item);
                                                     }

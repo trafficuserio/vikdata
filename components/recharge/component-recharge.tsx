@@ -27,26 +27,30 @@ const idTheme = 'FVa1f46';
 const accountName = 'DAO PHU THINH';
 
 const packages = [
-    { label: '20.000 = 20.000 Vik', money: 20000 },
-    { label: '50.000 = 52.000 Vik', money: 50000 },
-    { label: '100.000 = 105.000 Vik', money: 105000 },
-    { label: '200.000 = 225.000 Vik', money: 220000 },
-    { label: '500.000 = 550.000 Vik', money: 550000 },
-    { label: '1.000.000 = 1.100.000 Vik', money: 1100000 },
-    { label: '2.000.000 = 2.300.000 Vik', money: 2300000 },
-    { label: '3.000.000 = 3.500.000 Vik', money: 3500000 },
-    { label: '5.000.000 = 5.800.000 Vik', money: 5800000 },
-    { label: '10.000.000 = 11.000.000 Vik', money: 11000000 },
+    { label: '20.000 = 20.000 Vik', money: 20000, receive: 20000 },
+    { label: '50.000 = 52.000 Vik', money: 50000, receive: 52000 },
+    { label: '100.000 = 105.000 Vik', money: 100000, receive: 105000 },
+    { label: '200.000 = 225.000 Vik', money: 200000, receive: 225000 },
+    { label: '500.000 = 550.000 Vik', money: 500000, receive: 550000 },
+    { label: '1.000.000 = 1.100.000 Vik', money: 1000000, receive: 1100000 },
+    { label: '2.000.000 = 2.300.000 Vik', money: 2000000, receive: 2300000 },
+    { label: '3.000.000 = 3.500.000 Vik', money: 3000000, receive: 3500000 },
+    { label: '5.000.000 = 5.800.000 Vik', money: 5000000, receive: 5800000 },
+    { label: '10.000.000 = 11.000.000 Vik', money: 10000000, receive: 11000000 },
 ];
 
-const packageOptions = packages.map((pkg) => ({ value: pkg.money, label: pkg.label }));
+const packageOptions = packages.map((pkg) => ({
+    value: pkg.money,
+    label: pkg.label,
+    receive: pkg.receive,
+}));
 
 const RechargeHistoryPage: React.FC = () => {
     const [data, setData] = useState<RechargeRecord[]>([]);
     const [page, setPage] = useState<number>(1);
     const [limit, setLimit] = useState<number>(5);
     const [totalRecords, setTotalRecords] = useState<number>(0);
-    const [selectedPackage, setSelectedPackage] = useState<{ value: number; label: string } | null>(null);
+    const [selectedPackage, setSelectedPackage] = useState<{ value: number; label: string; receive: number } | null>(null);
     const [discountCode, setDiscountCode] = useState<string>('');
     const [openModal, setOpenModal] = useState<boolean>(false);
     const [qrUrl, setQrUrl] = useState<string>('');
@@ -56,7 +60,7 @@ const RechargeHistoryPage: React.FC = () => {
     useEffect(() => {
         if (selectedPackage) {
             const money = selectedPackage.value;
-            const content = `Nạp tiền gói ${selectedPackage.label}${discountCode ? ' - Mã giảm giá: ' + discountCode : ''}`;
+            const content = tempAddInfo;
             const amount = String(money);
             setQrUrl(`https://api.vietqr.io/image/${idBank}-${idAccount}-${idTheme}.jpg?accountName=${accountName}&amount=${amount}&addInfo=${encodeURIComponent(content)}`);
         }
@@ -131,7 +135,7 @@ const RechargeHistoryPage: React.FC = () => {
         },
     ];
 
-    const tempAddInfo = selectedPackage ? `vikdata_${selectedPackage.value}` : '';
+    const tempAddInfo = selectedPackage ? `vikdata${selectedPackage.value}` : '';
 
     return (
         <>
@@ -167,10 +171,16 @@ const RechargeHistoryPage: React.FC = () => {
                     {selectedPackage && <p className="mb-2 text-primary font-semibold text-center">Gói nạp dịch vụ {selectedPackage.label}</p>}
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="w-full md:w-1/2 rounded-lg bg-black-light dark:bg-black-dark-light p-4">
-                            {qrUrl && <img src={qrUrl} alt="QR Code" className="w-full" />}
-                            <div className="mt-4 flex justify-between">
-                                <p>Tổng tiền:</p>
-                                {selectedPackage && <p>{selectedPackage.value.toLocaleString()} đ</p>}
+                            {qrUrl && <img src={qrUrl} alt="QR Code" className="w-full rounded-lg" />}
+                            <div className="mt-4">
+                                <div className="flex justify-between">
+                                    <p>Tổng tiền chuyển:</p>
+                                    {selectedPackage && <p>{selectedPackage.value.toLocaleString()} đ</p>}
+                                </div>
+                                <div className="flex justify-between">
+                                    <p>Tổng tiền nhận:</p>
+                                    {selectedPackage && <p>{selectedPackage.receive.toLocaleString()} đ</p>}
+                                </div>
                             </div>
                         </div>
                         <div className="w-full md:w-1/2 flex justify-center flex-col">
