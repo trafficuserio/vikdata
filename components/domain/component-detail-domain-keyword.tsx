@@ -54,7 +54,7 @@ export default function DomainDetailKeyword() {
     const [activeServer, setActiveServer] = useState<ServerStatus | null>(null);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
     const [isServerRunning, setIsServerRunning] = useState<boolean>(false);
-    const [progressPercentage, setProgressPercentage] = useState<number>(0);
+    const [progressPercentage, setProgressPercentage] = useState<number>(-1);
     const isRtl = false;
     const filteredAndSortedRecords = data;
     const paginatedRecords = filteredAndSortedRecords.slice((page - 1) * pageSize, page * pageSize);
@@ -192,6 +192,7 @@ export default function DomainDetailKeyword() {
                             setActiveServer(syncingServer);
                             setIsServerRunning(true);
                             setIsSyncing(true);
+                            setProgressPercentage(0);
                         } else {
                             setIsServerRunning(false);
                             setIsSyncing(false);
@@ -204,7 +205,7 @@ export default function DomainDetailKeyword() {
 
     useEffect(() => {
         if (refreshIntervalRef.current) {
-            clearInterval(refreshIntervalRef.current);
+            clearInterval(refreshIntervalRef.current as NodeJS.Timeout);
             refreshIntervalRef.current = null;
         }
         if (domainInfo && token && isSyncing) {
@@ -285,9 +286,9 @@ export default function DomainDetailKeyword() {
         progressPercentage < 100 && (
             <div className="flex flex-row items-center gap-2 w-[400px] mx-auto justify-center">
                 <div className="text-center text-lg font-semibold text-primary">{progressPercentage.toFixed(0)}%</div>
-                <div className="w-full max-w-md relative">
+                <div className="w-full max-w-md relative rounded-full overflow-hidden">
                     <div
-                        className="animated-progress h-3 rounded-full bg-primary relative z-10"
+                        className="animated-progress h-3  bg-primary relative z-10"
                         style={{
                             width: `${progressPercentage}%`,
                             backgroundImage: 'linear-gradient(45deg,hsla(0,0%,100%,.15) 25%,transparent 0,transparent 50%,hsla(0,0%,100%,.15) 0,hsla(0,0%,100%,.15) 75%,transparent 0,transparent)',
@@ -319,6 +320,7 @@ export default function DomainDetailKeyword() {
     const refreshData = async () => {
         if (!domainInfo) return;
         const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
+        let progress = 0;
         try {
             const response = await axios.get(apiUrl, {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -329,27 +331,17 @@ export default function DomainDetailKeyword() {
                 const rowsIsDoing = newData.filter((row: any) => row.processing === 'is_doing');
                 const total = rowsIsDoing.length;
                 const completed = rowsIsDoing.filter((row: any) => Number(row.is_done) === 1).length;
-                const progress = total > 0 ? (completed / total) * 100 : 100;
+                progress = total > 0 ? (completed / total) * 100 : 100;
                 setProgressPercentage(progress);
-                if (!isServerRunning && (total === 0 || completed === total)) {
-                    if (refreshIntervalRef.current) {
-                        clearInterval(refreshIntervalRef.current);
-                        refreshIntervalRef.current = null;
-                    }
-                    setIsSyncing(false);
-                }
             }
         } catch (error) {
             console.error('Error fetching data:', error);
             setData([]);
             setImportedExcelData([]);
-            if (refreshIntervalRef.current) {
-                clearInterval(refreshIntervalRef.current);
-                refreshIntervalRef.current = null;
-            }
-            setIsSyncing(false);
         }
-        if (isServerRunning && activeServer) {
+
+        let currentServerRunning = isServerRunning;
+        if (activeServer) {
             try {
                 const response = await axios.get(`${activeServer.url}/api/site/status`, {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -357,25 +349,28 @@ export default function DomainDetailKeyword() {
                 });
                 const status = response.data;
                 const updatedActive = { ...activeServer, is_running: status.is_running, loading: false };
+                currentServerRunning = updatedActive.is_running;
                 setActiveServer(updatedActive);
                 setServerData((prev) => prev.map((item) => (item.id === updatedActive.id ? updatedActive : item)));
-                if (updatedActive.is_running) {
-                    setIsServerRunning(true);
-                    setIsSyncing(true);
-                } else {
-                    setIsServerRunning(false);
-                    setIsSyncing(false);
-                }
+                setIsServerRunning(updatedActive.is_running);
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        if (!currentServerRunning && progress >= 100) {
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+                refreshIntervalRef.current = null;
+            }
+            setIsSyncing(false);
         }
     };
 
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
         setOpenModal(false);
-        setProgressPercentage(0);
+        setProgressPercentage(-1);
         setIsServerRunning(true);
         setIsImported(true);
         const exportData = importedExcelData.map((row: any) => ({
@@ -714,7 +709,7 @@ export default function DomainDetailKeyword() {
                     </div>
                 </div>
             </div>
-            {isServerRunning && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
+            {progressPercentage < 100 && progressPercentage != -1 && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
             <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-96">
