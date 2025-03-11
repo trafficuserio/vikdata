@@ -284,10 +284,10 @@ const ComponentsStatistical = () => {
                         <ComponentReadDomainAnalytics startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
-                        <ComponentReadDomainAdsense startDate={startDate} endDate={endDate} />
+                        <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
-                        <ComponentReadDomainGoogleSearchConsole startDate={startDate} endDate={endDate} />
+                        <ComponentReadDomainAdsense startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentListKeyword startDate={startDate} endDate={endDate} />

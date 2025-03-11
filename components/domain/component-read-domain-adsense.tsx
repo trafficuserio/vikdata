@@ -202,7 +202,7 @@ const ComponentReadAdSenseAnalytics: React.FC<ComponentProps> = ({ startDate, en
     }
 
     return (
-        <div className='mt-4'>
+        <div className="mt-4">
             {isLoading && (
                 <div className="mt-4 flex justify-center">
                     <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-black !border-l-transparent dark:border-white"></span>

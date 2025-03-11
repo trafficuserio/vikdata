@@ -14,7 +14,7 @@ import Cookies from 'js-cookie';
 import { render } from '@headlessui/react/dist/utils/render';
 
 interface RechargeRecord {
-    id: string;
+    id: number;
     money: number;
     content: string;
     status: boolean | null;
@@ -35,21 +35,67 @@ const RechargeHistoryPage: React.FC = () => {
 
     const fetchHistory = async () => {
         try {
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/user/get-history-recharge`, {
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_URL_API}/api/admin/get-list-recharge-history`, {
                 params: { page, limit },
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
             });
-            setData(response.data.data.histories);
-            setTotalRecords(response.data.data.totalItems);
+            setData(response.data.data.data);
+            setTotalRecords(response.data.data.totalPage * limit);
         } catch (error) {}
     };
 
     useEffect(() => {
         fetchHistory();
     }, [page, limit]);
+
+    const handleAccept = async (id: number) => {
+        try {
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/admin/accept-recharge`,
+                { rechargeId: id },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            if (response.data.errorcode === 200) {
+                ShowMessageSuccess({ content: 'Chấp nhận thành công' });
+                fetchHistory();
+            } else {
+                ShowMessageError({ content: 'Chấp nhận thất bại' });
+            }
+        } catch (error) {
+            ShowMessageError({ content: 'Có lỗi xảy ra' });
+        }
+    };
+
+    const handleReject = async (id: number) => {
+        try {
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/admin/reject-recharge`,
+                { rechargeId: id },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            if (response.data.errorcode === 200) {
+                ShowMessageSuccess({ content: 'Từ chối thành công' });
+                fetchHistory();
+            } else {
+                ShowMessageError({ content: 'Từ chối thất bại' });
+            }
+        } catch (error) {
+            ShowMessageError({ content: 'Có lỗi xảy ra' });
+        }
+    };
 
     const columns = [
         {
@@ -66,26 +112,45 @@ const RechargeHistoryPage: React.FC = () => {
                 return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
             },
         },
-        { accessor: 'money', title: 'Số tiền', render: (row: RechargeRecord) => row.money.toLocaleString() + ' VND' },
-        { accessor: 'content', title: 'Nội dung' },
+        {
+            accessor: 'money',
+            title: 'Số tiền',
+            render: (row: RechargeRecord) => row.money.toLocaleString() + ' VND',
+        },
+        {
+            accessor: 'content',
+            title: 'Nội dung',
+        },
         {
             accessor: 'status',
             title: 'Trạng thái',
             render: (row: RechargeRecord) => (
                 <span className={`text-sm badge ${row.status === null ? 'badge-outline-warning' : row.status === true ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                    {row.status === null ? 'Đang chờ xử lý' : row.status === true ? 'Thành công' : 'Thất bại'}
+                    {row.status === null ? 'Đang chờ xử lý' : row.status === true ? 'Hợp lệ' : 'Từ chối'}
                 </span>
             ),
         },
+        {
+            accessor: 'actions',
+            title: 'Hành động',
+            render: (row: RechargeRecord) => (
+                <div className="justify-center flex flex-col gap-1">
+                    <button className="hover:underline" onClick={() => handleAccept(row.id)}>
+                        Chấp nhận
+                    </button>
+                    <button className="hover:underline" onClick={() => handleReject(row.id)}>
+                        Từ chối
+                    </button>
+                </div>
+            ),
+        },
     ];
-
-    const tempAddInfo = selectedPackage ? `vikdata_${selectedPackage.value}` : '';
 
     return (
         <>
             <div className="p-4">
                 <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
-                    <div style={{ position: 'relative', height: '50vh', overflow: 'auto' }} className="datatables pagination-padding">
+                    <div style={{ position: 'relative', height: '70vh', overflow: 'auto' }} className="datatables pagination-padding">
                         <DataTable columns={columns} records={data} totalRecords={totalRecords} page={page} onPageChange={setPage} recordsPerPage={limit} />
                     </div>
                 </div>

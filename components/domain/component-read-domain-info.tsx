@@ -7,15 +7,12 @@ import logout from '@/utils/logout';
 const ComponentReadInfo = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [domainInfo, setDomainInfo] = useState<any>(null);
-
     const searchParams = useSearchParams();
     const domainId = searchParams.get('id');
     const token = Cookies.get('token');
-
     useEffect(() => {
         const fetchAdSenseData = async () => {
             setIsLoading(true);
-
             try {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
                     headers: {
@@ -23,11 +20,9 @@ const ComponentReadInfo = () => {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-
                 if (!res.ok) {
                     throw new Error('Failed to fetch domain information');
                 }
-
                 const data = await res.json();
                 if ([401, 403].includes(data.errorcode)) {
                     ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
@@ -44,12 +39,10 @@ const ComponentReadInfo = () => {
                 setIsLoading(false);
             }
         };
-
         if (domainId && token) {
             fetchAdSenseData();
         }
     }, [domainId, token]);
-
     if (isLoading) {
         return (
             <div className="mt-4 flex justify-center">
@@ -57,11 +50,9 @@ const ComponentReadInfo = () => {
             </div>
         );
     }
-
     if (!domainInfo) {
         return <div>No domain data available.</div>;
     }
-
     return (
         <div className="mt-8 space-y-4">
             <h2 className="text-2xl font-semibold">Thông tin miền</h2>
@@ -110,9 +101,24 @@ const ComponentReadInfo = () => {
                     <strong className="font-medium text-base">Mô tả:</strong>
                     <span className="text-base">{domainInfo.description}</span>
                 </li>
+                <li className="flex gap-2">
+                    <strong className="font-medium text-base">User Admin:</strong>
+                    <span className="text-base">{domainInfo.user_admin}</span>
+                </li>
+                <li className="flex gap-2">
+                    <strong className="font-medium text-base">Password Admin:</strong>
+                    <span className="text-base">{domainInfo.password_admin}</span>
+                </li>
+                <li className="flex gap-2">
+                    <strong className="font-medium text-base">User Aplication:</strong>
+                    <span className="text-base">{domainInfo.user_aplication}</span>
+                </li>
+                <li className="flex gap-2">
+                    <strong className="font-medium text-base">Password Aplication:</strong>
+                    <span className="text-base">{domainInfo.password_aplication}</span>
+                </li>
             </ul>
         </div>
     );
 };
-
 export default ComponentReadInfo;

@@ -13,6 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { metric: stri
     const token = req.cookies.get('token')?.value;
 
     if (!refreshToken || !clientId || !clientSecret || !accountId || !token) {
+        console.error('Missing required parameters', { refreshToken, clientId, clientSecret, accountId, token });
         return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
@@ -74,7 +75,10 @@ export async function GET(req: NextRequest, { params }: { params: { metric: stri
             },
         });
 
-        if (!response.ok) throw new Error('Failed to fetch AdSense report');
+        if (!response.ok) {
+            console.error('Failed to fetch AdSense report', response);
+            throw new Error('Failed to fetch AdSense report');
+        }
         return await response.json();
     };
 

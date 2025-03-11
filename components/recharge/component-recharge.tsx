@@ -11,7 +11,6 @@ import IconCopy from '@/components/icon/icon-copy';
 import IconInfo from '@/components/icon/icon-info';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import Cookies from 'js-cookie';
-import { render } from '@headlessui/react/dist/utils/render';
 
 interface RechargeRecord {
     id: string;
@@ -23,7 +22,7 @@ interface RechargeRecord {
 
 const idBank = '970422';
 const idAccount = '0857300073';
-const idTheme = 'FVa1f46';
+const idTheme = '1Uut9Xm';
 const accountName = 'DAO PHU THINH';
 
 const packages = [
@@ -129,7 +128,7 @@ const RechargeHistoryPage: React.FC = () => {
             title: 'Trạng thái',
             render: (row: RechargeRecord) => (
                 <span className={`text-sm badge ${row.status === null ? 'badge-outline-warning' : row.status === true ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                    {row.status === null ? 'Đang chờ xử lý' : row.status === true ? 'Thành công' : 'Thất bại'}
+                    {row.status === null ? 'Đang chờ xử lý' : row.status === true ? 'Hợp lệ' : 'Từ chối'}
                 </span>
             ),
         },
