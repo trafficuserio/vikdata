@@ -331,7 +331,7 @@ export default function DomainDetailKeyword() {
                 const completed = rowsIsDoing.filter((row: any) => Number(row.is_done) === 1).length;
                 const progress = total > 0 ? (completed / total) * 100 : 100;
                 setProgressPercentage(progress);
-                if (progress >= 100) {
+                if (!isServerRunning && (total === 0 || completed === total)) {
                     if (refreshIntervalRef.current) {
                         clearInterval(refreshIntervalRef.current);
                         refreshIntervalRef.current = null;
