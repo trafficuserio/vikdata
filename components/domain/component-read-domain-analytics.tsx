@@ -5,9 +5,9 @@ import ReactApexChart from 'react-apexcharts';
 import ApexCharts from 'apexcharts';
 import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
+import { ShowMessageError } from '@/components/component-show-message';
 import logout from '@/utils/logout';
 
 interface MetricsData {
@@ -53,7 +53,6 @@ const units: Record<string, string> = {
     engagementRate: '%',
     bounceRate: '%',
     userEngagementDuration: 'giây',
-    eventValue: 'đ',
 };
 
 const seriesNameToMetricKey: Record<string, string> = {
@@ -76,6 +75,9 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
     const [isMounted, setIsMounted] = useState(false);
     const [isLoadingGA, setIsLoadingGA] = useState(false);
     const [propertyId, setPropertyId] = useState<string>('');
+
+    const [realtimeActiveUsers30, setRealtimeActiveUsers30] = useState<number>(0);
+    const [realtimeActiveUsers5, setRealtimeActiveUsers5] = useState<number>(0);
 
     const searchParams = useSearchParams();
     const domainId = searchParams.get('id');
@@ -128,7 +130,7 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
         };
 
         fetchDomainInfo();
-    }, [domainId]);
+    }, [domainId, token]);
 
     useEffect(() => {
         if (!startDate || !endDate || !propertyId) return;
@@ -251,9 +253,7 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
                             min: 0,
                             tickAmount: 7,
                             labels: {
-                                formatter: (value: number) => {
-                                    return formatNumber(value);
-                                },
+                                formatter: (value: number) => formatNumber(value),
                                 offsetX: -10,
                                 offsetY: 0,
                                 style: {
@@ -318,16 +318,63 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
             });
     }, [startDate, endDate, propertyId, domainId]);
 
+    useEffect(() => {
+        if (!domainId) return;
+        const token = Cookies.get('token');
+        const fetchRealtimeData = async () => {
+            try {
+                const res30 = await fetch(`/api/analytics/activeUsers/realtime-active-users?minutes=30&domainId=${domainId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (res30.ok) {
+                    const data30 = await res30.json();
+                    setRealtimeActiveUsers30(Number(data30.activeUsers) || 0);
+                }
+
+                const res5 = await fetch(`/api/analytics/activeUsers/realtime-active-users?minutes=5&domainId=${domainId}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (res5.ok) {
+                    const data5 = await res5.json();
+                    setRealtimeActiveUsers5(Number(data5.activeUsers) || 0);
+                }
+            } catch (error) {
+                console.error('Error fetching realtime data:', error);
+            }
+        };
+
+        fetchRealtimeData();
+        const interval = setInterval(fetchRealtimeData, 60000);
+        return () => clearInterval(interval);
+    }, [domainId, token]);
+
     if (errorGA) return <div className="text-red-500">{errorGA}</div>;
 
     return (
         <div>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
+                    <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-white"></div>
+                    <h3 className="text-lg font-semibold dark:text-white">Người dùng đang hoạt động 30 phút qua</h3>
+                    <p>{formatNumber(realtimeActiveUsers30)}</p>
+                </div>
+                <div className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
+                    <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg bg-white"></div>
+                    <h3 className="text-lg font-semibold dark:text-white">Người dùng đang hoạt động 5 phút qua</h3>
+                    <p>{formatNumber(realtimeActiveUsers5)}</p>
+                </div>
+            </div>
             {isLoadingGA && (
                 <div className="mt-4 flex justify-center">
                     <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-black !border-l-transparent dark:border-white"></span>
                 </div>
             )}
-
             {!isLoadingGA && chartData && (
                 <>
                     <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-5">

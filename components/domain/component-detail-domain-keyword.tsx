@@ -256,6 +256,9 @@ export default function DomainDetailKeyword() {
         }
     }, [uniqueSites, promptList]);
 
+    const formatNumber = (value: number) => {
+        return new Intl.NumberFormat('vi-VN').format(value);
+    };
     const handleImportFileExcel = () => {
         if (!activeServer?.url) {
             ShowMessageError({ content: 'Không có server nào được chọn' });
@@ -263,7 +266,6 @@ export default function DomainDetailKeyword() {
         }
         fileInputRef.current?.click();
     };
-
     const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -384,10 +386,12 @@ export default function DomainDetailKeyword() {
                         );
                     } catch (error) {}
                     MySwal.fire({
-                        title: 'Lỗi Server',
-                        text: 'Server không phản hồi. Thử lại!',
-                        icon: 'error',
-                        confirmButtonText: 'Đóng',
+                        toast: true,
+                        position: 'top',
+                        title: 'Server lỗi, thử lại!',
+                        icon: 'info',
+                        showConfirmButton: false,
+                        timer: 3000,
                     });
                     return;
                 }
@@ -432,7 +436,10 @@ export default function DomainDetailKeyword() {
             }
             setIsSyncing(false);
         }
+
+        setSelectedRecords([]);
     };
+
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
         setOpenModal(false);
@@ -522,16 +529,21 @@ export default function DomainDetailKeyword() {
         if (!isServerRunning) setProgressPercentage(0);
     };
     const handleRewrite = async (row: any) => {
+        if (!activeServer?.url) {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+            return;
+        }
         if (!domainInfo || isSyncing) return;
-        setIsServerRunning(true);
-        setProgressPercentage(0);
-        const typeSite = typeSiteMapping[domainInfo.group_site] || '';
+
         const availableServer = activeServer
             ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
             : serverData.find((item) => !item.is_running && !item.timedOut);
-        if (!activeServer && availableServer) {
-            setActiveServer(availableServer);
+        if (!availableServer) {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+            return;
         }
+
+        const typeSite = typeSiteMapping[domainInfo.group_site] || '';
         const payload = {
             post_data: [{ post_id: row.post_id, primary_key: row.primary_key }],
             username: domainInfo.user_aplication,
@@ -542,51 +554,84 @@ export default function DomainDetailKeyword() {
             region: 'en-US',
             is_cloud: 'False',
             is_crawling: 'True',
-            serverId: availableServer ? String(availableServer.id) : '',
+            serverId: String(availableServer.id),
             domainId: String(domainInfo.id),
             currentAPI: process.env.NEXT_PUBLIC_URL_API || '',
         };
-        if (availableServer) {
-            try {
-                await axios.post(
-                    `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
-                    { serverId: availableServer.id, domainId: domainInfo.id },
-                    { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
-                );
-                await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-                setIsSyncing(true);
-            } catch (error) {
-                console.error('Lỗi khi thực hiện rewrite:', error);
+
+        try {
+            const moneyResponse = await axios.post(`${availableServer.url}/api/site/get-money-rewrite`, payload, {
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            });
+            let requiredMoney = moneyResponse.data.money;
+            const displayMoney = !isNaN(requiredMoney) ? formatNumber(requiredMoney) : 0;
+            if (myMoney < requiredMoney) {
+                await MySwal.fire({
+                    title: 'Lỗi',
+                    text: 'Số dư không đủ để viết lại',
+                    icon: 'error',
+                    confirmButtonText: 'Đóng',
+                });
+                return;
             }
-        } else {
-            ShowMessageError({ content: 'Không có server nào được chọn' });
-            setIsServerRunning(false);
+            const totalPosts = payload.post_data.length;
+
+            if (moneyResponse.data.errorcode === '319' || isNaN(requiredMoney)) {
+                requiredMoney = 0;
+            }
+            const confirmResult = await MySwal.fire({
+                title: 'Xác nhận viết lại',
+                html: `Số bài viết: <strong>${totalPosts}</strong><br/>Số tiền cần thanh toán: <strong>${displayMoney} Vik</strong>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy',
+            });
+            if (!confirmResult.isConfirmed) return;
+
+            setIsServerRunning(true);
+            setProgressPercentage(0);
+
+            await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
+                { serverId: availableServer.id, domainId: domainInfo.id },
+                { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
+            );
+            const rewriteResponse = await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+
+            if (rewriteResponse.data && rewriteResponse.data.errorCode === '319') {
+                MySwal.fire({
+                    toast: true,
+                    position: 'top',
+                    title: rewriteResponse.data.message || 'Không có dữ liệu để xử lý',
+                    icon: 'info',
+                    showConfirmButton: false,
+                    timer: 3000,
+                });
+            }
+            setIsSyncing(true);
+        } catch (error) {
+            console.error('Lỗi khi thực hiện rewrite:', error);
         }
     };
     const handleRewriteSelected = async () => {
-        if (!domainInfo || isSyncing || selectedRecords.length === 0) return;
-        setProgressPercentage(0);
-        setIsServerRunning(true);
-
-        const availableServer = activeServer
-            ? serverData.find((item) => item.is_running === false && !item.timedOut && item.id === activeServer.id)
-            : serverData.find((item) => item.is_running === false && !item.timedOut);
-
-        if (!availableServer) {
+        if (!activeServer?.url) {
             ShowMessageError({ content: 'Không có server nào được chọn' });
-            setIsServerRunning(false);
             return;
         }
+        if (!domainInfo || isSyncing || selectedRecords.length === 0) return;
 
-        if (!activeServer) {
-            setActiveServer(availableServer);
+        const availableServer = activeServer
+            ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
+            : serverData.find((item) => !item.is_running && !item.timedOut);
+        if (!availableServer) {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+            return;
         }
-
         const postData = selectedRecords.map((row) => ({
             post_id: row.post_id,
             primary_key: row.primary_key,
         }));
-
         const typeSite = typeSiteMapping[domainInfo.group_site] || '';
         const payload = {
             post_data: postData,
@@ -604,25 +649,61 @@ export default function DomainDetailKeyword() {
         };
 
         try {
+            const moneyResponse = await axios.post(`${availableServer.url}/api/site/get-money-rewrite`, payload, {
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            });
+            let requiredMoney = moneyResponse.data.money;
+            const displayMoney = !isNaN(requiredMoney) ? formatNumber(requiredMoney) : 0;
+            if (myMoney < requiredMoney) {
+                await MySwal.fire({
+                    title: 'Lỗi',
+                    text: 'Số dư không đủ để viết lại',
+                    icon: 'error',
+                    confirmButtonText: 'Đóng',
+                });
+                return;
+            }
+            const totalPosts = payload.post_data.length;
+
+            if (moneyResponse.data.errorcode === '319' || isNaN(requiredMoney)) {
+                requiredMoney = 0;
+            }
+            const confirmResult = await MySwal.fire({
+                title: 'Xác nhận viết lại',
+                html: `Số bài viết: <strong>${totalPosts}</strong><br/>Số tiền cần thanh toán: <strong>${displayMoney} Vik</strong>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy',
+            });
+            if (!confirmResult.isConfirmed) return;
+
+            setIsServerRunning(true);
+            setProgressPercentage(0);
+
             await axios.post(
                 `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
                 { serverId: availableServer.id, domainId: domainInfo.id },
                 { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
             );
+            const rewriteResponse = await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
 
-            await axios.post(`${availableServer.url}/api/site/rewrite`, payload, {
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            });
+            if (rewriteResponse.data && rewriteResponse.data.errorCode === '319') {
+                MySwal.fire({
+                    toast: true,
+                    position: 'top',
+                    title: rewriteResponse.data.message || 'Không có dữ liệu để xử lý',
+                    icon: 'info',
+                    showConfirmButton: false,
+                    timer: 3000,
+                });
+            }
         } catch (error) {
             console.error('Lỗi khi thực hiện rewrite:', error);
-            setIsServerRunning(false);
             return;
         }
-
         setIsSyncing(true);
-        setIsServerRunning(true);
     };
-
     const handleDeleteTempData = async (serverUrl: string) => {
         if (!domainInfo?.domain || !token) return;
         if (!serverUrl) {

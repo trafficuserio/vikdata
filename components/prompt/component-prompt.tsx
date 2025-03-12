@@ -433,9 +433,14 @@ export default function Prompt() {
 
     const promptColumns: DataTableColumn<any>[] = [
         { accessor: 'id', title: 'ID', sortable: true },
-        { accessor: 'level', title: 'Cấp', sortable: true },
+        {
+            accessor: 'level',
+            title: 'Cấp',
+            sortable: true,
+            render: (p: any) => <span className="text-sm badge badge-outline-primary">Cấp {p.level}</span>,
+        },
         { accessor: 'name', title: 'Tên', sortable: true },
-        { accessor: 'money', title: 'Giá', sortable: true },
+        { accessor: 'money', title: 'Giá', sortable: true, render: (p: any) => <span className="text-sm badge badge-outline-primary">{p.money} VNĐ</span> },
         {
             accessor: 'action',
             title: 'Hành động',

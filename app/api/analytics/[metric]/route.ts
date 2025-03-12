@@ -1,37 +1,30 @@
-// pages/api/analytics/[metric]/route.ts
+// Vikdata/app/api/analytics/[metric]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAnalyticsDataClient } from '@/lib/googleAnalytics';
 
-const getDomainInfoById = async (domainId: string, token: string) => {
+async function getDomainInfoById(domainId: string, token: string) {
     const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/manage-domain/get-infor-domain-by-id?id=${domainId}`, {
         headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
         },
     });
-
     const data = await response.json();
 
     if (data.errorcode === 401) {
         const logoutResponse = NextResponse.json({ error: 'Phiên đăng nhập hết hạn' }, { status: 401 });
-        logoutResponse.cookies.set('token', '', {
-            path: '/',
-            expires: new Date(0),
-        });
+        logoutResponse.cookies.set('token', '', { path: '/', expires: new Date(0) });
         return logoutResponse;
     }
-
     if (!response.ok && data.errorcode !== 401) {
         throw new Error(data.message || 'Failed to refresh access token');
     }
-
     if (data.errorcode !== 200) {
         throw new Error(data.message || 'Error fetching domain information');
     }
-
     return data.data;
-};
+}
 
 interface Params {
     params: {
@@ -64,9 +57,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     if (!domainId) {
         return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 });
     }
-
     const token = req.cookies.get('token')?.value;
-
     if (!token) {
         return NextResponse.json({ error: 'Unauthorized: Token is missing' }, { status: 401 });
     }
@@ -74,12 +65,10 @@ export async function GET(req: NextRequest, { params }: Params) {
     try {
         const domainInfo = await getDomainInfoById(domainId, token);
         const keyAnalytics = domainInfo.key_analytics;
-        const propertyIdFromDomain = domainInfo.property_id;
-
+        const propertyId = domainInfo.property_id; // VD: "439599106"
         const analyticsDataClient = createAnalyticsDataClient(keyAnalytics);
 
         const metrics: Metric[] = [{ name: params.metric }];
-
         let dateRanges: DateRange[] = [];
 
         if (start && end) {
@@ -94,14 +83,13 @@ export async function GET(req: NextRequest, { params }: Params) {
 
         for (const range of dateRanges) {
             const [report] = await analyticsDataClient.runReport({
-                property: propertyIdFromDomain,
+                property: propertyId,
                 dateRanges: [{ startDate: range.startDate, endDate: range.endDate }],
                 metrics: metrics,
                 dimensions: [{ name: 'date' }],
             });
 
             const rows = report?.rows || [];
-
             rows.forEach((row) => {
                 const metricsData: Record<string, string> = {};
                 row.metricValues?.forEach((m, i) => {

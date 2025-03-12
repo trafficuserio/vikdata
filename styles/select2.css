@@ -14,6 +14,10 @@
     @apply shadow-none;
 }
 
+.custom-select .css-1nmdiq5-menu {
+    @apply z-10;
+}
+
 .custom-select .css-1nmdiq5-menu > div > div {
     @apply !bg-transparent hover:!bg-[#f6f6f6] dark:hover:!bg-[#132136];
 }
