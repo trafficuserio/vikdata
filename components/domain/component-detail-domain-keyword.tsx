@@ -498,13 +498,19 @@ export default function DomainDetailKeyword() {
                 formData.append('serverId', String(availableServer.id));
                 formData.append('domainId', String(domainInfo.id));
                 formData.append('currentAPI', process.env.NEXT_PUBLIC_URL_API || '');
-                await axios
-                    .post(`${availableServer.url}/api/site`, formData, {
-                        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
-                    })
-                    .then(() => {
-                        if (token) fetchMoney(token, setMyMoney);
+                const siteResponse = await axios.post(`${availableServer.url}/api/site`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
+                });
+                if (siteResponse.data && siteResponse.data.errorCode === '315') {
+                    MySwal.fire({
+                        title: 'Lỗi',
+                        text: siteResponse.data.message || 'Không thể kiểm tra số dư',
+                        icon: 'error',
+                        confirmButtonText: 'Đóng',
                     });
+                    return;
+                }
+                if (token) fetchMoney(token, setMyMoney);
             } catch (error) {
                 console.error('Lỗi khi đồng bộ dữ liệu:', error);
                 setIsServerRunning(false);
@@ -559,51 +565,64 @@ export default function DomainDetailKeyword() {
     };
     const handleRewriteSelected = async () => {
         if (!domainInfo || isSyncing || selectedRecords.length === 0) return;
-        const total = selectedRecords.length;
         setProgressPercentage(0);
         setIsServerRunning(true);
-        for (let i = 0; i < total; i++) {
-            const row = selectedRecords[i];
-            const typeSite = typeSiteMapping[domainInfo.group_site] || '';
-            const availableServer = activeServer
-                ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
-                : serverData.find((item) => !item.is_running && !item.timedOut);
-            if (!activeServer && availableServer) {
-                setActiveServer(availableServer);
-            }
-            const payload = {
-                post_data: [{ post_id: row.post_id, primary_key: row.primary_key }],
-                username: domainInfo.user_aplication,
-                password: domainInfo.password_aplication,
-                url: 'https://' + domainInfo.domain,
-                max_workers: 4,
-                type_site: typeSite,
-                region: 'en-US',
-                is_cloud: 'False',
-                is_crawling: 'True',
-                serverId: availableServer ? String(availableServer.id) : '',
-                domainId: String(domainInfo.id),
-                currentAPI: process.env.NEXT_PUBLIC_URL_API || '',
-            };
-            if (availableServer) {
-                try {
-                    await axios.post(
-                        `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
-                        { serverId: availableServer.id, domainId: domainInfo.id },
-                        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
-                    );
-                    await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-                } catch (error) {
-                    console.error('Lỗi khi thực hiện rewrite:', error);
-                }
-                setIsSyncing(true);
-                setIsServerRunning(true);
-            } else {
-                ShowMessageError({ content: 'Không có server nào được chọn' });
-                setIsServerRunning(false);
-            }
+
+        const availableServer = activeServer
+            ? serverData.find((item) => item.is_running === false && !item.timedOut && item.id === activeServer.id)
+            : serverData.find((item) => item.is_running === false && !item.timedOut);
+
+        if (!availableServer) {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+            setIsServerRunning(false);
+            return;
         }
+
+        if (!activeServer) {
+            setActiveServer(availableServer);
+        }
+
+        const postData = selectedRecords.map((row) => ({
+            post_id: row.post_id,
+            primary_key: row.primary_key,
+        }));
+
+        const typeSite = typeSiteMapping[domainInfo.group_site] || '';
+        const payload = {
+            post_data: postData,
+            username: domainInfo.user_aplication,
+            password: domainInfo.password_aplication,
+            url: 'https://' + domainInfo.domain,
+            max_workers: 4,
+            type_site: typeSite,
+            region: 'en-US',
+            is_cloud: 'False',
+            is_crawling: 'True',
+            serverId: String(availableServer.id),
+            domainId: String(domainInfo.id),
+            currentAPI: process.env.NEXT_PUBLIC_URL_API || '',
+        };
+
+        try {
+            await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-active`,
+                { serverId: availableServer.id, domainId: domainInfo.id },
+                { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
+            );
+
+            await axios.post(`${availableServer.url}/api/site/rewrite`, payload, {
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            });
+        } catch (error) {
+            console.error('Lỗi khi thực hiện rewrite:', error);
+            setIsServerRunning(false);
+            return;
+        }
+
+        setIsSyncing(true);
+        setIsServerRunning(true);
     };
+
     const handleDeleteTempData = async (serverUrl: string) => {
         if (!domainInfo?.domain || !token) return;
         if (!serverUrl) {
@@ -920,11 +939,11 @@ export default function DomainDetailKeyword() {
                                     setPage(1);
                                 }}
                                 selectedRecords={selectedRecords}
-                                onSelectedRecordsChange={setSelectedRecords}
+                                onSelectedRecordsChange={!isServerRunning ? setSelectedRecords : () => {}}
                                 paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
                                 highlightOnHover
                                 rowClassName={(row) => (row.status_delete == 1 ? 'bg-gray-300 opacity-50' : '')}
-                                isRecordSelectable={(row) => row.status_delete != 1}
+                                isRecordSelectable={(row) => !isServerRunning && row.status_delete != 1}
                             />
                         </div>
                         {selectedRecords.length > 0 && (
