@@ -16,6 +16,7 @@ import 'flatpickr/dist/flatpickr.css';
 import withReactContent from 'sweetalert2-react-content';
 import Swal from 'sweetalert2';
 import { fetchMoney } from '@/utils/fetchMoney';
+import { set } from 'lodash';
 
 interface ServerStatus {
     id: number;
@@ -61,6 +62,7 @@ export default function DomainDetailKeyword() {
     const MySwal = withReactContent(Swal);
     const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const falseCountRef = useRef(0);
 
     const typeSiteMapping: { [key: string]: string } = {
         'Tất cả': 'tatca',
@@ -178,11 +180,10 @@ export default function DomainDetailKeyword() {
                                 timeout: 3000,
                             })
                             .then((res) => {
-                                const status = res.data;
-                                return { ...serverObj, is_running: status.is_running, loading: false };
+                                return { ...serverObj, is_running: res.data.is_running, loading: false };
                             })
                             .catch(() => {
-                                return { ...serverObj, is_running: false, loading: false, timedOut: true };
+                                return { ...serverObj, is_running: null, loading: false, timedOut: true };
                             });
                     });
                     Promise.all(serverStatusPromises).then((updatedServers) => {
@@ -256,6 +257,10 @@ export default function DomainDetailKeyword() {
     }, [uniqueSites, promptList]);
 
     const handleImportFileExcel = () => {
+        if (!activeServer?.url) {
+            ShowMessageError({ content: 'Không có server nào được chọn' });
+            return;
+        }
         fileInputRef.current?.click();
     };
 
@@ -281,7 +286,6 @@ export default function DomainDetailKeyword() {
         };
         reader.readAsBinaryString(file);
     };
-
     const renderProgressBar = () =>
         progressPercentage < 100 && (
             <div className="flex flex-row items-center gap-2 w-[400px] mx-auto justify-center">
@@ -316,7 +320,6 @@ export default function DomainDetailKeyword() {
             </div>
         );
     };
-
     const refreshData = async () => {
         if (!domainInfo) return;
         const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
@@ -353,8 +356,72 @@ export default function DomainDetailKeyword() {
                 setActiveServer(updatedActive);
                 setServerData((prev) => prev.map((item) => (item.id === updatedActive.id ? updatedActive : item)));
                 setIsServerRunning(updatedActive.is_running);
+
+                if (updatedActive.is_running === false) {
+                    falseCountRef.current++;
+                } else {
+                    falseCountRef.current = 0;
+                }
+
+                if (falseCountRef.current >= 3) {
+                    if (refreshIntervalRef.current) {
+                        clearInterval(refreshIntervalRef.current);
+                        refreshIntervalRef.current = null;
+                    }
+                    setIsSyncing(false);
+                    setProgressPercentage(-1);
+                    setIsServerRunning(false);
+                    try {
+                        await axios.post(
+                            `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-unactive`,
+                            {
+                                serverId: activeServer.id,
+                                domainId: domainInfo.id,
+                            },
+                            {
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            },
+                        );
+                    } catch (error) {}
+                    MySwal.fire({
+                        title: 'Lỗi Server',
+                        text: 'Server không phản hồi. Thử lại!',
+                        icon: 'error',
+                        confirmButtonText: 'Đóng',
+                    });
+                    return;
+                }
             } catch (err) {
                 console.error(err);
+                falseCountRef.current++;
+                if (falseCountRef.current >= 3) {
+                    if (refreshIntervalRef.current) {
+                        clearInterval(refreshIntervalRef.current);
+                        refreshIntervalRef.current = null;
+                    }
+                    setIsSyncing(false);
+                    try {
+                        await axios.post(
+                            `${process.env.NEXT_PUBLIC_URL_API}/api/server-infor/create-server-infor-unactive`,
+                            {
+                                serverId: activeServer.id,
+                                domainId: domainInfo.id,
+                            },
+                            {
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            },
+                        );
+                    } catch (error) {
+                        console.error('Error calling create-server-infor-unactive:', error);
+                    }
+                    MySwal.fire({
+                        title: 'Lỗi Server',
+                        text: 'Server không phản hồi sau 3 lần thử.',
+                        icon: 'error',
+                        confirmButtonText: 'Đóng',
+                    });
+                    return;
+                }
             }
         }
 
@@ -366,7 +433,6 @@ export default function DomainDetailKeyword() {
             setIsSyncing(false);
         }
     };
-
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
         setOpenModal(false);
@@ -449,7 +515,6 @@ export default function DomainDetailKeyword() {
         setData([]);
         if (!isServerRunning) setProgressPercentage(0);
     };
-
     const handleRewrite = async (row: any) => {
         if (!domainInfo || isSyncing) return;
         setIsServerRunning(true);
@@ -663,11 +728,11 @@ export default function DomainDetailKeyword() {
                                             <li
                                                 key={item.url}
                                                 className={`p-2 ${
-                                                    isSyncing ? 'cursor-not-allowed' : !item.is_running ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer' : 'cursor-not-allowed'
+                                                    isSyncing ? 'cursor-not-allowed' : item.is_running === false ? 'hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer' : 'cursor-not-allowed'
                                                 } ${activeServer?.url === item.url && 'bg-gray-200 dark:bg-gray-700'}`}
                                                 onClick={() => {
                                                     if (isSyncing) return;
-                                                    if (!item.is_running) {
+                                                    if (item.is_running === false) {
                                                         setActiveServer(item);
                                                     }
                                                 }}
@@ -680,7 +745,7 @@ export default function DomainDetailKeyword() {
                                                     <div className="flex items-center gap-2">
                                                         <span
                                                             className={`size-2 rounded-full ${
-                                                                item.timedOut ? 'bg-danger' : item.loading ? 'bg-primary' : item.is_running ? 'bg-danger' : 'bg-success'
+                                                                item.loading ? 'bg-primary' : item.is_running === null ? 'bg-[#666]' : item.is_running ? 'bg-danger' : 'bg-success'
                                                             }`}
                                                         ></span>
                                                     </div>
