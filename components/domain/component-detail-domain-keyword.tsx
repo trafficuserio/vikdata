@@ -446,6 +446,7 @@ export default function DomainDetailKeyword() {
         setProgressPercentage(-1);
         setIsServerRunning(true);
         setIsImported(true);
+
         const exportData = importedExcelData.map((row: any) => ({
             'Từ khoá chính': row['Từ khoá chính'] || '',
             'Name Uppercase': row['Name Uppercase'] || '',
@@ -462,6 +463,7 @@ export default function DomainDetailKeyword() {
             Source: row['Source'] || '',
             id_prompt: row['Site'] && sitePrompts[row['Site']] ? sitePrompts[row['Site']] : '',
         }));
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportData), 'Sheet1');
         const xlsxBlob = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -489,6 +491,7 @@ export default function DomainDetailKeyword() {
             return sum;
         }, 0);
         formData.append('money', String(totalCost));
+
         const availableServer = activeServer
             ? serverData.find((item) => !item.is_running && !item.timedOut && item.id === activeServer.id)
             : serverData.find((item) => !item.is_running && !item.timedOut);
@@ -508,10 +511,10 @@ export default function DomainDetailKeyword() {
                 const siteResponse = await axios.post(`${availableServer.url}/api/site`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
                 });
-                if (siteResponse.data && siteResponse.data.errorCode === '315') {
+                if (siteResponse.data && siteResponse.data.errorcode !== 200) {
                     MySwal.fire({
                         title: 'Lỗi',
-                        text: siteResponse.data.message || 'Không thể kiểm tra số dư',
+                        text: siteResponse.data.message || 'Có lỗi xảy ra',
                         icon: 'error',
                         confirmButtonText: 'Đóng',
                     });
@@ -528,6 +531,7 @@ export default function DomainDetailKeyword() {
         setData([]);
         if (!isServerRunning) setProgressPercentage(0);
     };
+
     const handleRewrite = async (row: any) => {
         if (!activeServer?.url) {
             ShowMessageError({ content: 'Không có server nào được chọn' });
@@ -564,6 +568,9 @@ export default function DomainDetailKeyword() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             });
             let requiredMoney = moneyResponse.data.money;
+            if (moneyResponse.data.errorcode === '319' || isNaN(requiredMoney)) {
+                requiredMoney = 0;
+            }
             const displayMoney = !isNaN(requiredMoney) ? formatNumber(requiredMoney) : 0;
             if (myMoney < requiredMoney) {
                 await MySwal.fire({
@@ -575,10 +582,6 @@ export default function DomainDetailKeyword() {
                 return;
             }
             const totalPosts = payload.post_data.length;
-
-            if (moneyResponse.data.errorcode === '319' || isNaN(requiredMoney)) {
-                requiredMoney = 0;
-            }
             const confirmResult = await MySwal.fire({
                 title: 'Xác nhận viết lại',
                 html: `Số bài viết: <strong>${totalPosts}</strong><br/>Số tiền cần thanh toán: <strong>${displayMoney} Vik</strong>`,
@@ -597,23 +600,24 @@ export default function DomainDetailKeyword() {
                 { serverId: availableServer.id, domainId: domainInfo.id },
                 { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
             );
-            const rewriteResponse = await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-
-            if (rewriteResponse.data && rewriteResponse.data.errorCode === '319') {
+            const rewriteResponse = await axios.post(`${availableServer.url}/api/site/rewrite`, payload, {
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            });
+            if (rewriteResponse.data && rewriteResponse.data.errorcode !== 200) {
                 MySwal.fire({
-                    toast: true,
-                    position: 'top',
-                    title: rewriteResponse.data.message || 'Không có dữ liệu để xử lý',
-                    icon: 'info',
-                    showConfirmButton: false,
-                    timer: 3000,
+                    title: 'Lỗi',
+                    text: rewriteResponse.data.message || 'Có lỗi xảy ra khi viết lại',
+                    icon: 'error',
+                    confirmButtonText: 'Đóng',
                 });
+                return;
             }
             setIsSyncing(true);
         } catch (error) {
             console.error('Lỗi khi thực hiện rewrite:', error);
         }
     };
+
     const handleRewriteSelected = async () => {
         if (!activeServer?.url) {
             ShowMessageError({ content: 'Không có server nào được chọn' });
@@ -653,6 +657,9 @@ export default function DomainDetailKeyword() {
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             });
             let requiredMoney = moneyResponse.data.money;
+            if (moneyResponse.data.errorcode === '319' || isNaN(requiredMoney)) {
+                requiredMoney = 0;
+            }
             const displayMoney = !isNaN(requiredMoney) ? formatNumber(requiredMoney) : 0;
             if (myMoney < requiredMoney) {
                 await MySwal.fire({
@@ -664,10 +671,6 @@ export default function DomainDetailKeyword() {
                 return;
             }
             const totalPosts = payload.post_data.length;
-
-            if (moneyResponse.data.errorcode === '319' || isNaN(requiredMoney)) {
-                requiredMoney = 0;
-            }
             const confirmResult = await MySwal.fire({
                 title: 'Xác nhận viết lại',
                 html: `Số bài viết: <strong>${totalPosts}</strong><br/>Số tiền cần thanh toán: <strong>${displayMoney} Vik</strong>`,
@@ -686,17 +689,17 @@ export default function DomainDetailKeyword() {
                 { serverId: availableServer.id, domainId: domainInfo.id },
                 { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
             );
-            const rewriteResponse = await axios.post(`${availableServer.url}/api/site/rewrite`, payload, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-
-            if (rewriteResponse.data && rewriteResponse.data.errorCode === '319') {
+            const rewriteResponse = await axios.post(`${availableServer.url}/api/site/rewrite`, payload, {
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            });
+            if (rewriteResponse.data && rewriteResponse.data.errorcode !== 200) {
                 MySwal.fire({
-                    toast: true,
-                    position: 'top',
-                    title: rewriteResponse.data.message || 'Không có dữ liệu để xử lý',
-                    icon: 'info',
-                    showConfirmButton: false,
-                    timer: 3000,
+                    title: 'Lỗi',
+                    text: rewriteResponse.data.message || 'Có lỗi xảy ra khi viết lại',
+                    icon: 'error',
+                    confirmButtonText: 'Đóng',
                 });
+                return;
             }
         } catch (error) {
             console.error('Lỗi khi thực hiện rewrite:', error);
@@ -704,6 +707,7 @@ export default function DomainDetailKeyword() {
         }
         setIsSyncing(true);
     };
+
     const handleDeleteTempData = async (serverUrl: string) => {
         if (!domainInfo?.domain || !token) return;
         if (!serverUrl) {
