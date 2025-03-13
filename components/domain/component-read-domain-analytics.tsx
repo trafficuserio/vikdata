@@ -334,7 +334,7 @@ const ComponentReadDomainAnalytics: React.FC<ComponentProps> = ({ startDate, end
                     setRealtimeActiveUsers30(Number(data30.activeUsers) || 0);
                 }
 
-                const res5 = await fetch(`/api/analytics/activeUsers/realtime-active-users?minutes=5&domainId=${domainId}`, {
+                const res5 = await fetch(`/api/analytics/activeUsers/realtime-active-users?minutes=30&domainId=${domainId}`, {
                     headers: {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,

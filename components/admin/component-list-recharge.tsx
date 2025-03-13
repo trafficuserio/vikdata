@@ -12,6 +12,7 @@ import IconInfo from '@/components/icon/icon-info';
 import { ShowMessageError, ShowMessageSuccess } from '@/components/component-show-message';
 import Cookies from 'js-cookie';
 import { render } from '@headlessui/react/dist/utils/render';
+import { text } from 'stream/consumers';
 
 interface RechargeRecord {
     id: number;
@@ -133,8 +134,9 @@ const RechargeHistoryPage: React.FC = () => {
         {
             accessor: 'actions',
             title: 'Hành động',
+            textAlign: 'center',
             render: (row: RechargeRecord) => (
-                <div className="justify-center flex flex-col gap-1">
+                <div className="justify-center flex flex-col gap-1 w-max">
                     <button className="hover:underline" onClick={() => handleAccept(row.id)}>
                         Chấp nhận
                     </button>

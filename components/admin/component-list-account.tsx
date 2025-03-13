@@ -42,18 +42,15 @@ export default function ComponentListAccount() {
     });
     const [selectedRecords, setSelectedRecords] = useState<AccountData[]>([]);
 
-    // State cho Modal cập nhật ngày (Single)
     const [showModalSingle, setShowModalSingle] = useState(false);
     const [singleUserId, setSingleUserId] = useState<string | null>(null);
     const [singleDate, setSingleDate] = useState<Date | null>(null);
 
-    // State cho Modal cập nhật ngày (Multi)
     const [showModalMulti, setShowModalMulti] = useState(false);
     const [multiDate, setMultiDate] = useState<Date | null>(null);
 
     useEffect(() => {
         fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     async function fetchData() {

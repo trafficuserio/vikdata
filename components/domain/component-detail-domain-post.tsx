@@ -45,6 +45,14 @@ const PostList: React.FC = () => {
     const token = Cookies.get('token');
     const router = useRouter();
     const MySwal = withReactContent(Swal);
+    const formatDomain = (domain: string) => {
+        if (!domain) return '';
+        if (domain.startsWith('http://') || domain.startsWith('https://')) {
+            return domain;
+        }
+        return 'https://' + domain;
+    };
+
     useEffect(() => {
         if (domainId && token) {
             axios
@@ -71,7 +79,7 @@ const PostList: React.FC = () => {
         if (domainInfo && domainInfo.domain) {
             setIsLoading(true);
             axios
-                .get<Post[]>(`https://${domainInfo.domain}/wp-json/custom/v1/get-posts`)
+                .get<Post[]>(`${formatDomain(domainInfo?.domain || '')}/wp-json/custom/v1/get-posts`)
                 .then((response) => {
                     const decodedPosts = response.data.map((post) => ({
                         ...post,
@@ -331,14 +339,13 @@ const PostList: React.FC = () => {
                 <div className="justify-center flex flex-col gap-1">
                     <a
                         href={
-                            'https://' +
-                            domainInfo?.domain +
+                            formatDomain(domainInfo?.domain || '') +
                             '/auto-login-page?user=' +
                             domainInfo?.user_admin +
                             '&pass=' +
                             domainInfo?.password_admin +
                             '&redirect=' +
-                            domainInfo?.domain +
+                            formatDomain(domainInfo?.domain || '') +
                             '/wp-admin/post.php?post=' +
                             post.id +
                             '&action=edit'

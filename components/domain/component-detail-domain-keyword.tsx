@@ -127,7 +127,7 @@ export default function DomainDetailKeyword() {
     useEffect(() => {
         if (domainInfo?.domain) {
             setIsLoading(true);
-            const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
+            const apiUrl = `${formatDomain(domainInfo?.domain || '')}/wp-json/custom-api/v1/get-excel-data/`;
             axios
                 .get(apiUrl, {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -256,6 +256,13 @@ export default function DomainDetailKeyword() {
         }
     }, [uniqueSites, promptList]);
 
+    const formatDomain = (domain: string) => {
+        if (!domain) return '';
+        if (domain.startsWith('http://') || domain.startsWith('https://')) {
+            return domain;
+        }
+        return 'https://' + domain;
+    };
     const formatNumber = (value: number) => {
         return new Intl.NumberFormat('vi-VN').format(value);
     };
@@ -324,7 +331,7 @@ export default function DomainDetailKeyword() {
     };
     const refreshData = async () => {
         if (!domainInfo) return;
-        const apiUrl = `https://${domainInfo.domain}/wp-json/custom-api/v1/get-excel-data/`;
+        const apiUrl = `${formatDomain(domainInfo?.domain || '')}/wp-json/custom-api/v1/get-excel-data/`;
         let progress = 0;
         try {
             const response = await axios.get(apiUrl, {
@@ -439,7 +446,6 @@ export default function DomainDetailKeyword() {
 
         setSelectedRecords([]);
     };
-
     const handleRun = async () => {
         if (!domainInfo || isSyncing) return;
         setOpenModal(false);
@@ -475,7 +481,7 @@ export default function DomainDetailKeyword() {
         formData.append('region', 'en-US');
         const isCrawling = domainInfo.group_site === 'Hình ảnh' ? 'True' : 'True';
         formData.append('is_crawling', isCrawling);
-        formData.append('url', 'https://' + domainInfo.domain);
+        formData.append('url', formatDomain(domainInfo?.domain || ''));
         formData.append('max_workers', '4');
         formData.append('username', domainInfo.user_aplication);
         formData.append('password', domainInfo.password_aplication);
@@ -531,7 +537,6 @@ export default function DomainDetailKeyword() {
         setData([]);
         if (!isServerRunning) setProgressPercentage(0);
     };
-
     const handleRewrite = async (row: any) => {
         if (!activeServer?.url) {
             ShowMessageError({ content: 'Không có server nào được chọn' });
@@ -552,7 +557,7 @@ export default function DomainDetailKeyword() {
             post_data: [{ post_id: row.post_id, primary_key: row.primary_key }],
             username: domainInfo.user_aplication,
             password: domainInfo.password_aplication,
-            url: 'https://' + domainInfo.domain,
+            url: formatDomain(domainInfo?.domain || ''),
             max_workers: 4,
             type_site: typeSite,
             region: 'en-US',
@@ -617,7 +622,6 @@ export default function DomainDetailKeyword() {
             console.error('Lỗi khi thực hiện rewrite:', error);
         }
     };
-
     const handleRewriteSelected = async () => {
         if (!activeServer?.url) {
             ShowMessageError({ content: 'Không có server nào được chọn' });
@@ -641,7 +645,7 @@ export default function DomainDetailKeyword() {
             post_data: postData,
             username: domainInfo.user_aplication,
             password: domainInfo.password_aplication,
-            url: 'https://' + domainInfo.domain,
+            url: formatDomain(domainInfo?.domain || ''),
             max_workers: 4,
             type_site: typeSite,
             region: 'en-US',
@@ -707,7 +711,6 @@ export default function DomainDetailKeyword() {
         }
         setIsSyncing(true);
     };
-
     const handleDeleteTempData = async (serverUrl: string) => {
         if (!domainInfo?.domain || !token) return;
         if (!serverUrl) {
@@ -735,7 +738,7 @@ export default function DomainDetailKeyword() {
             await axios.post(
                 `${serverUrl}/api/site/delete`,
                 {
-                    url: `https://${domainInfo.domain}`,
+                    url: formatDomain(domainInfo?.domain || ''),
                     username: domainInfo.user_aplication,
                     password: domainInfo.password_aplication,
                 },
