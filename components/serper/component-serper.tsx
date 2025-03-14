@@ -15,6 +15,7 @@ import * as XLSX from 'xlsx';
 interface SerperKeyData {
     id: number;
     apiKey: string;
+    status: boolean;
 }
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -58,6 +59,7 @@ export default function ComponentSerper() {
                 const mapped: SerperKeyData[] = rows.map((row: any) => ({
                     id: row.id,
                     apiKey: row.api_key,
+                    status: row.status,
                 }));
                 setSerperKeys(mapped);
             } else {
@@ -139,7 +141,7 @@ export default function ComponentSerper() {
         try {
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_URL_API}/api/admin/delete-api-key-serper`,
-                { apiKeyId: [id] },
+                { apiKeyIds: [id] },
                 { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
             );
             const data = response.data;
@@ -168,7 +170,7 @@ export default function ComponentSerper() {
             const ids = selectedRecords.map((item) => item.id);
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_URL_API}/api/admin/delete-api-key-serper`,
-                { apiKeyId: ids },
+                { apiKeyIds: ids },
                 { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
             );
             const data = response.data;
@@ -271,6 +273,15 @@ export default function ComponentSerper() {
             title: 'API Key',
             sortable: true,
             textAlignment: 'left',
+        },
+        {
+            accessor: 'status',
+            title: 'Trạng thái',
+            sortable: true,
+            textAlignment: 'left',
+            render: (row) => {
+                return <span className={`text-sm badge ${!row.status ? 'badge-outline-success' : 'badge-outline-warning'}`}>{!row.status ? 'Chưa dùng' : 'Hết hạn'}</span>;
+            },
         },
         {
             accessor: 'id',

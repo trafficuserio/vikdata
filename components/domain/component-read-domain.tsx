@@ -15,6 +15,7 @@ import ComponentReadDomainGoogleSearchConsole from '@/components/domain/componen
 import ComponentReadDomainAdsense from '@/components/domain/component-read-domain-adsense';
 import ComponentReadDomainInfo from '@/components/domain/component-read-domain-info';
 import ComponentListKeyword from '@/components/domain/keyword/component-list-keyword';
+import ComponentHistorySerper from '@/components/serper/component-history-serper';
 import dayjs from 'dayjs';
 
 const shortcutsItems = [
@@ -213,6 +214,18 @@ const ComponentsStatistical = () => {
                                         tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
                                     } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
                                 >
+                                    <IconKeyword className="h-5 w-5" />
+                                    <p className="ml-2 hidden md:block">Serper</p>
+                                </button>
+                            )}
+                        </Tab>
+                        <Tab as={Fragment}>
+                            {(tabProps) => (
+                                <button
+                                    className={`${
+                                        tabProps.selected ? '!border-white-light !border-b-white text-primary !outline-none dark:!border-[#191e3a] dark:!border-b-black' : ''
+                                    } -mb-[1px] flex items-center whitespace-nowrap border border-transparent p-3.5 py-2 hover:text-primary dark:hover:border-b-black`}
+                                >
                                     <IconInfo className="h-5 w-5" />
                                     <p className="ml-2 hidden md:block">Thông tin</p>
                                 </button>
@@ -291,6 +304,9 @@ const ComponentsStatistical = () => {
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentListKeyword startDate={startDate} endDate={endDate} />
+                    </Tab.Panel>
+                    <Tab.Panel>
+                        <ComponentHistorySerper startDate={startDate} endDate={endDate} />
                     </Tab.Panel>
                     <Tab.Panel>
                         <ComponentReadDomainInfo />

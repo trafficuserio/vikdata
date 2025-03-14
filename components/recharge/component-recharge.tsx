@@ -85,7 +85,10 @@ const RechargeHistoryPage: React.FC = () => {
             );
             setOpenModal(false);
             await fetchHistory();
-        } catch (error) {}
+            ShowMessageSuccess({ content: 'Đã yêu cầu, vui lòng chờ duyệt!' });
+        } catch (error) {
+            ShowMessageError({ content: 'Nạp tiền thất bại' });
+        }
     };
 
     const fetchHistory = async () => {

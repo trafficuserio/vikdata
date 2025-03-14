@@ -52,49 +52,72 @@ const RechargeHistoryPage: React.FC = () => {
         fetchHistory();
     }, [page, limit]);
 
+    // Sắp xếp dữ liệu theo thời gian mới nhất (createdAt giảm dần)
+    const sortedData = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     const handleAccept = async (id: number) => {
-        try {
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_URL_API}/api/admin/accept-recharge`,
-                { rechargeId: id },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
+        const result = await Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc chắn muốn chấp nhận giao dịch này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Có, chấp nhận',
+            cancelButtonText: 'Hủy',
+        });
+        if (result.isConfirmed) {
+            try {
+                const response = await axios.post(
+                    `${process.env.NEXT_PUBLIC_URL_API}/api/admin/accept-recharge`,
+                    { rechargeId: id },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
                     },
-                },
-            );
-            if (response.data.errorcode === 200) {
-                ShowMessageSuccess({ content: 'Chấp nhận thành công' });
-                fetchHistory();
-            } else {
-                ShowMessageError({ content: 'Chấp nhận thất bại' });
+                );
+                if (response.data.errorcode === 200) {
+                    ShowMessageSuccess({ content: 'Chấp nhận thành công' });
+                    fetchHistory();
+                } else {
+                    ShowMessageError({ content: 'Chấp nhận thất bại' });
+                }
+            } catch (error) {
+                ShowMessageError({ content: 'Có lỗi xảy ra' });
             }
-        } catch (error) {
-            ShowMessageError({ content: 'Có lỗi xảy ra' });
         }
     };
 
     const handleReject = async (id: number) => {
-        try {
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_URL_API}/api/admin/reject-recharge`,
-                { rechargeId: id },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
+        const result = await Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc chắn muốn từ chối giao dịch này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Có, từ chối',
+            cancelButtonText: 'Hủy',
+        });
+        if (result.isConfirmed) {
+            try {
+                const response = await axios.post(
+                    `${process.env.NEXT_PUBLIC_URL_API}/api/admin/reject-recharge`,
+                    { rechargeId: id },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
                     },
-                },
-            );
-            if (response.data.errorcode === 200) {
-                ShowMessageSuccess({ content: 'Từ chối thành công' });
-                fetchHistory();
-            } else {
-                ShowMessageError({ content: 'Từ chối thất bại' });
+                );
+                if (response.data.errorcode === 200) {
+                    ShowMessageSuccess({ content: 'Từ chối thành công' });
+                    fetchHistory();
+                } else {
+                    ShowMessageError({ content: 'Từ chối thất bại' });
+                }
+            } catch (error) {
+                ShowMessageError({ content: 'Có lỗi xảy ra' });
             }
-        } catch (error) {
-            ShowMessageError({ content: 'Có lỗi xảy ra' });
         }
     };
 
@@ -153,7 +176,7 @@ const RechargeHistoryPage: React.FC = () => {
             <div className="p-4">
                 <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
                     <div style={{ position: 'relative', height: '70vh', overflow: 'auto' }} className="datatables pagination-padding">
-                        <DataTable columns={columns} records={data} totalRecords={totalRecords} page={page} onPageChange={setPage} recordsPerPage={limit} />
+                        <DataTable columns={columns} records={sortedData} totalRecords={totalRecords} page={page} onPageChange={setPage} recordsPerPage={limit} />
                     </div>
                 </div>
             </div>

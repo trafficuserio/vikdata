@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import axios from 'axios';
+import axios, { AxiosProgressEvent } from 'axios';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
 import Select from 'react-select';
 import { useSelector } from 'react-redux';
@@ -13,6 +13,9 @@ import logout from '@/utils/logout';
 import IconArrowUp from '@/components/icon/icon-arrow-up';
 import IconArrowDown from '@/components/icon/icon-arrow-down';
 import Link from 'next/link';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
 interface RankKeyData {
     id: number;
     keyword: string;
@@ -21,6 +24,7 @@ interface RankKeyData {
     host_lang: string;
     rank1: number;
     rank2: number;
+    serperRank?: number;
     key_word_id: number;
 }
 interface ApiResponse {
@@ -56,6 +60,9 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
     const [urlKeyword, setUrlKeyword] = useState<string>('');
     const [geolocation, setGeolocation] = useState<string>('vn');
     const [hostLanguage, setHostLanguage] = useState<string>('vi');
+    const [selectedRecords, setSelectedRecords] = useState<RankKeyData[]>([]);
+    const MySwal = withReactContent(Swal);
+
     const geolocationOptions = [
         { value: 'af', label: 'af' },
         { value: 'al', label: 'al' },
@@ -419,6 +426,7 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                 host_lang: item.host_language,
                 rank1: 0,
                 rank2: 0,
+                serperRank: 0,
                 key_word_id: item.id,
             }));
             const mergedData: RankKeyData[] = [...dataRank];
@@ -559,11 +567,67 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
             ShowMessageError({ content: 'Lỗi khi xóa' });
         }
     };
+
+    const handleCheckSerper = async (records: RankKeyData[]) => {
+        if (!records.length) {
+            ShowMessageError({ content: 'Vui lòng chọn ít nhất 1 bản ghi.' });
+            return;
+        }
+
+        MySwal.fire({
+            title: 'Đang xử lý...',
+            text: 'Vui lòng đợi trong giây lát.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                MySwal.showLoading();
+            },
+        });
+
+        try {
+            const keywordIds = records.map((record) => record.key_word_id);
+
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/check-rank/check-rank-keyword`,
+                { keywordIds },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    responseType: 'text',
+                },
+            );
+
+            const responseData = response.data;
+            const regex = /({.*?})(?={|$)/g;
+            const matches = responseData.match(regex);
+
+            if (matches) {
+                const jsonObjects = matches.map((jsonStr: any) => JSON.parse(jsonStr));
+
+                const newData = rankKeyData.map((item) => {
+                    const matchedItem = jsonObjects.find((json: any) => json.data?.keywordId === item.key_word_id);
+                    return matchedItem && matchedItem.data ? { ...item, serperRank: matchedItem.data.rank } : item;
+                });
+
+                setRankKeyData(newData);
+                MySwal.close();
+                ShowMessageSuccess({ content: 'Check Serper thành công' });
+            } else {
+                MySwal.close();
+                ShowMessageError({ content: 'Dữ liệu trả về không hợp lệ' });
+            }
+        } catch (error) {
+            MySwal.close();
+            ShowMessageError({ content: 'Lỗi khi gọi API Check Serper' });
+        }
+    };
+
     useEffect(() => {
         fetchRankKeyData();
     }, [domainId, startDate, endDate, page, limit, sortBy, sortOrder, search]);
     const columns: DataTableColumn<RankKeyData>[] = [
-        { accessor: 'keyword', title: 'Từ khóa', sortable: true },
+        { accessor: 'keyword', title: 'Từ khoá', sortable: true },
         {
             accessor: 'url_keyword',
             title: 'URL',
@@ -607,11 +671,20 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
             ),
         },
         {
+            accessor: 'serperRank',
+            title: 'Thứ hạng Serper',
+            sortable: false,
+            render: ({ serperRank }) => <span>{serperRank ? formatNumber(serperRank) : '-'}</span>,
+        },
+        {
             accessor: 'action',
             title: 'Hành động',
             textAlignment: 'center',
             render: (record) => (
                 <div className="flex flex-col gap-1">
+                    <button onClick={() => handleCheckSerper([record])} className="hover:underline">
+                        Check Serper
+                    </button>
                     <Link href={`/domain/keyword/detail?id=${record.key_word_id}`}>Chi tiết</Link>
                     <button
                         onClick={() => {
@@ -644,8 +717,8 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                 {!isLoading && !error && (
                     <>
                         <div className="mb-4 flex flex-col md:flex-row items-center justify-between gap-4 px-4">
-                            <h5 className="text-lg font-semibold dark:text-white">Google Rank Keyword - Chi tiết từ khóa</h5>
-                            <div className="flex items-center gap-4">
+                            <h5 className="text-lg font-semibold dark:text-white">Google Rank Keyword - Chi tiết từ khoá</h5>
+                            <div className="flex items-center gap-2">
                                 <input
                                     type="text"
                                     value={search}
@@ -653,9 +726,12 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                                         setSearch(e.target.value);
                                         setPage(1);
                                     }}
-                                    placeholder="Tìm kiếm từ khóa..."
+                                    placeholder="Tìm kiếm từ khoá..."
                                     className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
                                 />
+                                <button onClick={() => handleCheckSerper(selectedRecords)} className="btn btn-secondary">
+                                    Serper
+                                </button>
                                 <button
                                     onClick={() => {
                                         setIsEdit(false);
@@ -671,6 +747,7 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                                 </button>
                             </div>
                         </div>
+
                         <div className="datatables pagination-padding overflow-auto">
                             <DataTable
                                 className="table-hover whitespace-nowrap"
@@ -693,6 +770,8 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
                                 }}
                                 paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
                                 highlightOnHover
+                                selectedRecords={selectedRecords}
+                                onSelectedRecordsChange={setSelectedRecords}
                             />
                         </div>
                     </>
