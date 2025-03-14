@@ -9,6 +9,7 @@ import { ShowMessageError, ShowMessageSuccess } from '@/components/component-sho
 import logout from '@/utils/logout';
 import IconUpload from '@/components/icon/icon-upload';
 import IconPlus from '@/components/icon/icon-plus';
+import IconTrash from '@/components/icon/icon-trash';
 import * as XLSX from 'xlsx';
 
 interface SerperKeyData {
@@ -27,6 +28,7 @@ export default function ComponentSerper() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
     const [search, setSearch] = useState('');
+    const [selectedRecords, setSelectedRecords] = useState<SerperKeyData[]>([]);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newApiKey, setNewApiKey] = useState('');
     const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -133,11 +135,11 @@ export default function ComponentSerper() {
         }
     }
 
-    async function handleDeleteApiKey(id: number) {
+    async function handleDeleteApiKey(id: any) {
         try {
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_URL_API}/api/admin/delete-api-key-serper`,
-                { apiKeyId: id },
+                { apiKeyId: [id] },
                 { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
             );
             const data = response.data;
@@ -149,6 +151,36 @@ export default function ComponentSerper() {
             if (data.errorcode === 200) {
                 ShowMessageSuccess({ content: 'Xóa API key thành công' });
                 fetchData();
+            } else {
+                ShowMessageError({ content: data?.message || 'Xóa API key không thành công' });
+            }
+        } catch (error) {
+            ShowMessageError({ content: 'Lỗi khi xóa API key' });
+        }
+    }
+
+    async function handleDeleteSelected() {
+        if (selectedRecords.length === 0) {
+            ShowMessageError({ content: 'Vui lòng chọn ít nhất 1 API key' });
+            return;
+        }
+        try {
+            const ids = selectedRecords.map((item) => item.id);
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_URL_API}/api/admin/delete-api-key-serper`,
+                { apiKeyId: ids },
+                { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } },
+            );
+            const data = response.data;
+            if ([401, 403].includes(data?.errorcode)) {
+                ShowMessageError({ content: 'Phiên đăng nhập hết hạn' });
+                logout(router);
+                return;
+            }
+            if (data.errorcode === 200) {
+                ShowMessageSuccess({ content: 'Xóa API key thành công' });
+                fetchData();
+                setSelectedRecords([]);
             } else {
                 ShowMessageError({ content: data?.message || 'Xóa API key không thành công' });
             }
@@ -335,12 +367,14 @@ export default function ComponentSerper() {
                                 <IconPlus />
                                 Thêm API Key
                             </button>
-                            <div>
+                            <div className="flex gap-2">
                                 <button type="button" className="btn gap-2 flex items-center btn-success" onClick={handleImportFileExcel}>
-                                    <p className="whitespace-nowrap flex items-center gap-2">
-                                        <IconUpload />
-                                        Import Excel
-                                    </p>
+                                    <IconUpload />
+                                    Import Excel
+                                </button>
+                                <button type="button" className="btn gap-2 flex items-center btn-danger" onClick={handleDeleteSelected} disabled={selectedRecords.length === 0}>
+                                    <IconTrash />
+                                    Xóa
                                 </button>
                                 <input type="file" ref={fileInputRef} onChange={onFileChange} accept=".xls,.xlsx" style={{ display: 'none' }} />
                             </div>
@@ -371,6 +405,8 @@ export default function ComponentSerper() {
                                 setPage(1);
                             }}
                             paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
+                            selectedRecords={selectedRecords}
+                            onSelectedRecordsChange={setSelectedRecords}
                             highlightOnHover
                         />
                     </div>
