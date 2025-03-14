@@ -157,6 +157,14 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+                                    <li className="menu nav-item">
+                                        <Link href="/serper" className="nav-link group">
+                                            <div className="flex items-center">
+                                                <IconPrompt className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Serper</span>
+                                            </div>
+                                        </Link>
+                                    </li>
                                 </>
                             )}
                         </ul>

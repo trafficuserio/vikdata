@@ -142,7 +142,7 @@ export default function ComponentListAccount() {
 
     function handleUpdateExpiredDateSingle(id: string) {
         setSingleUserId(id);
-        setSingleDate(null); // Reset date
+        setSingleDate(null);
         setShowModalSingle(true);
     }
 

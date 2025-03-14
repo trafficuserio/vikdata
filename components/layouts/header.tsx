@@ -164,78 +164,76 @@ const Header = () => {
                     </div>
                 </div>
 
-                <div className="horizontal-menu hidden border-t border-[#ebedf2] bg-white px-6 py-1.5 font-semibold text-black rtl:space-x-reverse dark:border-[#191e3a] dark:bg-black dark:text-white-dark lg:block">
-                    <ul className="horizontal-menu hidden bg-white px-6 py-1.5 font-semibold text-black rtl:space-x-reverse dark:bg-black dark:text-white-dark lg:space-x-1.5 xl:space-x-8">
-                        <li className="menu nav-item relative">
-                            <Link href="/" className="nav-link group">
-                                <div className="flex items-center">
-                                    <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
-                                    <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Trang chủ</span>
-                                </div>
-                            </Link>
-                        </li>
-                        <li className="menu nav-item relative">
-                            <Link href="/domain" className="nav-link group">
-                                <div className="flex items-center">
-                                    <IconMenuDomain className="shrink-0 group-hover:!text-primary" />
-                                    <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Domain</span>
-                                </div>
-                            </Link>
-                        </li>
-                        <li className="menu nav-item relative">
-                            <Link href="/google-search-api" className="nav-link group">
-                                <div className="flex items-center">
-                                    <IconSearchGoogle className="shrink-0 group-hover:!text-primary" />
-                                    <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Google Search API</span>
-                                </div>
-                            </Link>
-                        </li>
-                        <li className="menu nav-item relative">
-                            <Link href="/recharge" className="nav-link group">
-                                <div className="flex items-center">
-                                    <IconRecharge className="shrink-0 group-hover:!text-primary" />
-                                    <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Nạp tiền</span>
-                                </div>
-                            </Link>
-                        </li>
-                        {role === 'admin' && (
-                            <>
-                                <li className="menu nav-item relative">
-                                    <Link href="/admin" className="nav-link group">
-                                        <div className="flex items-center">
-                                            <IconUser className="shrink-0 group-hover:!text-primary" fill />
-                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Quản lý tài khoản</span>
-                                        </div>
-                                    </Link>
-                                </li>
-                                <li className="menu nav-item relative">
-                                    <Link href="/server" className="nav-link group">
-                                        <div className="flex items-center">
-                                            <IconServer className="shrink-0 group-hover:!text-primary" />
-                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Server</span>
-                                        </div>
-                                    </Link>
-                                </li>
-                                <li className="menu nav-item relative">
-                                    <Link href="/ai-model" className="nav-link group">
-                                        <div className="flex items-center">
-                                            <IconModelAI className="shrink-0 group-hover:!text-primary" />
-                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">AI Model</span>
-                                        </div>
-                                    </Link>
-                                </li>
-                                <li className="menu nav-item relative">
-                                    <Link href="/prompt" className="nav-link group">
-                                        <div className="flex items-center">
-                                            <IconPrompt className="shrink-0 group-hover:!text-primary" />
-                                            <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Prompt</span>
-                                        </div>
-                                    </Link>
-                                </li>
-                            </>
-                        )}
-                    </ul>
-                </div>
+                <ul className="horizontal-menu hidden bg-white border-t border-[#ebedf2] px-6 py-1.5 font-semibold text-black rtl:space-x-reverse dark:border-[#191e3a] dark:bg-black dark:text-white-dark lg:space-x-1.5 xl:space-x-8">
+                    <li className="menu nav-item relative">
+                        <Link href="/" className="nav-link group">
+                            <div className="flex items-center">
+                                <IconMenuDashboard className="shrink-0 group-hover:!text-primary" />
+                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Trang chủ</span>
+                            </div>
+                        </Link>
+                    </li>
+                    <li className="menu nav-item relative">
+                        <Link href="/domain" className="nav-link group">
+                            <div className="flex items-center">
+                                <IconMenuDomain className="shrink-0 group-hover:!text-primary" />
+                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Domain</span>
+                            </div>
+                        </Link>
+                    </li>
+                    <li className="menu nav-item relative">
+                        <Link href="/google-search-api" className="nav-link group">
+                            <div className="flex items-center">
+                                <IconSearchGoogle className="shrink-0 group-hover:!text-primary" />
+                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Google Search API</span>
+                            </div>
+                        </Link>
+                    </li>
+                    <li className="menu nav-item relative">
+                        <Link href="/recharge" className="nav-link group">
+                            <div className="flex items-center">
+                                <IconRecharge className="shrink-0 group-hover:!text-primary" />
+                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Nạp tiền</span>
+                            </div>
+                        </Link>
+                    </li>
+                    {role === 'admin' && (
+                        <>
+                            <li className="menu nav-item relative">
+                                <Link href="/admin" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconUser className="shrink-0 group-hover:!text-primary" fill />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Quản lý tài khoản</span>
+                                    </div>
+                                </Link>
+                            </li>
+                            <li className="menu nav-item relative">
+                                <Link href="/server" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconServer className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Server</span>
+                                    </div>
+                                </Link>
+                            </li>
+                            <li className="menu nav-item relative">
+                                <Link href="/ai-model" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconModelAI className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">AI Model</span>
+                                    </div>
+                                </Link>
+                            </li>
+                            <li className="menu nav-item relative">
+                                <Link href="/prompt" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconPrompt className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Prompt</span>
+                                    </div>
+                                </Link>
+                            </li>
+                        </>
+                    )}
+                </ul>
             </div>
         </header>
     );

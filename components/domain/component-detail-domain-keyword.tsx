@@ -618,6 +618,7 @@ export default function DomainDetailKeyword() {
                 return;
             }
             setIsSyncing(true);
+            if (token) fetchMoney(token, setMyMoney);
         } catch (error) {
             console.error('Lỗi khi thực hiện rewrite:', error);
         }
@@ -710,6 +711,7 @@ export default function DomainDetailKeyword() {
             return;
         }
         setIsSyncing(true);
+        if (token) fetchMoney(token, setMyMoney);
     };
     const handleDeleteTempData = async (serverUrl: string) => {
         if (!domainInfo?.domain || !token) return;
