@@ -26,7 +26,12 @@ interface ApiResponse {
     };
 }
 
-const ComponentHistorySerper: React.FC<{ startDate: Date; endDate: Date }> = ({ startDate, endDate }) => {
+interface ComponentProps {
+    startDate: Date | null;
+    endDate: Date | null;
+}
+
+const ComponentHistorySerper: React.FC<ComponentProps> = ({ startDate, endDate }) => {
     const [data, setData] = useState<HistorySerperData[]>([]);
     const [total, setTotal] = useState<number>(0);
     const [page, setPage] = useState<number>(1);
