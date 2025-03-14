@@ -24,6 +24,7 @@ import IconRecharge from '@/components/icon/icon-recharge';
 import IconServer from '@/components/icon/icon-server';
 import IconModelAI from '@/components/icon/icon-model-ai';
 import IconPrompt from '@/components/icon/icon-prompt';
+import IconMenuDocumentation from '@/components/icon/menu/icon-menu-documentation';
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import 'react-perfect-scrollbar/dist/css/styles.css';
 
@@ -228,6 +229,14 @@ const Header = () => {
                                     <div className="flex items-center">
                                         <IconPrompt className="shrink-0 group-hover:!text-primary" />
                                         <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Prompt</span>
+                                    </div>
+                                </Link>
+                            </li>
+                            <li className="menu nav-item relative">
+                                <Link href="/serper" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconMenuDocumentation className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Serper</span>
                                     </div>
                                 </Link>
                             </li>
