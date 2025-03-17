@@ -99,13 +99,21 @@ const CheckUrlsComponent: React.FC = () => {
         {
             accessor: 'message',
             title: 'Thông báo',
-            render: (row: CheckResult) => (
-                <span className={row.message === 'Your url is indexed' ? 'text-success' : row.message === 'Your url is not indexed' ? 'text-danger' : 'text-gray-500'}>
-                    {row.message === 'Your url is indexed' ? 'Url này đã Index' : row.message === 'Your url is not indexed' ? 'Url này chưa Index' : row.message}
-                </span>
-            ),
+            render: (row: CheckResult) => <span className={getClassName(row.message)}>{getDisplayMessage(row.message)}</span>,
         },
     ];
+
+    const getClassName = (message: any) => {
+        if (message === 'Your url is indexed') return 'text-success';
+        if (message === 'Your url is not indexed') return 'text-danger';
+        return 'text-gray-500';
+    };
+
+    const getDisplayMessage = (message: any) => {
+        if (message === 'Your url is indexed') return 'Url này đã Index';
+        if (message === 'Your url is not indexed') return 'Url này chưa Index';
+        return message;
+    };
 
     return (
         <>

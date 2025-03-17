@@ -16,6 +16,7 @@ import { text } from 'stream/consumers';
 
 interface RechargeRecord {
     id: number;
+    user_name: string;
     money: number;
     content: string;
     status: boolean | null;
@@ -52,7 +53,6 @@ const RechargeHistoryPage: React.FC = () => {
         fetchHistory();
     }, [page, limit]);
 
-    // Sắp xếp dữ liệu theo thời gian mới nhất (createdAt giảm dần)
     const sortedData = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const handleAccept = async (id: number) => {
@@ -122,6 +122,11 @@ const RechargeHistoryPage: React.FC = () => {
     };
 
     const columns = [
+        {
+            accessor: 'user_name',
+            title: 'Người dùng',
+            render: (row: RechargeRecord) => row.user_name,
+        },
         {
             accessor: 'createdAt',
             title: 'Thời gian',
