@@ -883,7 +883,9 @@ export default function DomainDetailKeyword() {
                     </div>
                 </div>
             </div>
-            {progressPercentage < 100 && progressPercentage != -1 && <div className="flex items-center mb-6">{renderProgressBar()}</div>}
+            {progressPercentage < 100 && progressPercentage != -1 && data.length > 0 && (
+                <div className="flex items-center mb-6">{renderProgressBar()}</div>
+            )}
             <div className="panel border-white-light p-0 dark:border-[#1b2e4b] overflow-hidden">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-96">
@@ -897,6 +899,12 @@ export default function DomainDetailKeyword() {
                 ) : (
                     <>
                         <div style={{ position: 'relative', height: '70vh', overflow: 'hidden' }} className="datatables pagination-padding">
+                            {isSyncing && data.length === 0 ? (
+                                <div className="absolute inset-0 bg-white/80 dark:bg-black/80 z-10 flex flex-col items-center justify-center">
+                                    <span className="inline-block h-10 w-10 animate-spin rounded-full border-[3px] border-transparent border-l-primary mb-4"></span>
+                                    <p className="text-lg font-medium">Đang xử lý dữ liệu...</p>
+                                </div>
+                            ) : null}
                             <DataTable
                                 className="table-hover whitespace-nowrap custom-datatable"
                                 columns={[
