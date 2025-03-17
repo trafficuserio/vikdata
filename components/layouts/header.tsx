@@ -24,6 +24,7 @@ import IconRecharge from '@/components/icon/icon-recharge';
 import IconServer from '@/components/icon/icon-server';
 import IconModelAI from '@/components/icon/icon-model-ai';
 import IconPrompt from '@/components/icon/icon-prompt';
+import IconCheckIndex from '@/components/icon/icon-check-index';
 import IconMenuDocumentation from '@/components/icon/menu/icon-menu-documentation';
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import 'react-perfect-scrollbar/dist/css/styles.css';
@@ -179,6 +180,14 @@ const Header = () => {
                             <div className="flex items-center">
                                 <IconMenuDomain className="shrink-0 group-hover:!text-primary" />
                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Domain</span>
+                            </div>
+                        </Link>
+                    </li>
+                    <li className="menu nav-item relative">
+                        <Link href="/check-index" className="nav-link group">
+                            <div className="flex items-center">
+                                <IconCheckIndex className="shrink-0 group-hover:!text-primary" />
+                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Kiểm tra index</span>
                             </div>
                         </Link>
                     </li>

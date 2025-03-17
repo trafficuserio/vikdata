@@ -567,62 +567,68 @@ const ComponentReadDomainRankKey: React.FC<ComponentProps> = ({ startDate, endDa
             ShowMessageError({ content: 'Lỗi khi xóa' });
         }
     };
-
     const handleCheckSerper = async (records: RankKeyData[]) => {
         if (!records.length) {
             ShowMessageError({ content: 'Vui lòng chọn ít nhất 1 bản ghi.' });
             return;
         }
-
         MySwal.fire({
-            title: 'Đang xử lý...',
+            title: 'Đang kiểm tra Serper...',
             text: 'Vui lòng đợi trong giây lát.',
             allowOutsideClick: false,
             didOpen: () => {
                 MySwal.showLoading();
             },
         });
-
         try {
             const keywordIds = records.map((record) => record.key_word_id);
-
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_URL_API}/api/check-rank/check-rank-keyword`,
-                { keywordIds },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    responseType: 'text',
+            const response = await fetch(`${process.env.NEXT_PUBLIC_URL_API}/api/check-rank/check-rank-keyword`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
                 },
-            );
-
-            const responseData = response.data;
-            const regex = /({.*?})(?={|$)/g;
-            const matches = responseData.match(regex);
-
-            if (matches) {
-                const jsonObjects = matches.map((jsonStr: any) => JSON.parse(jsonStr));
-
-                const newData = rankKeyData.map((item) => {
-                    const matchedItem = jsonObjects.find((json: any) => json.data?.keywordId === item.key_word_id);
-                    return matchedItem && matchedItem.data ? { ...item, serperRank: matchedItem.data.rank } : item;
-                });
-
-                setRankKeyData(newData);
-                MySwal.close();
-                ShowMessageSuccess({ content: 'Check Serper thành công' });
-            } else {
-                MySwal.close();
-                ShowMessageError({ content: 'Dữ liệu trả về không hợp lệ' });
+                body: JSON.stringify({ keywordIds }),
+            });
+            if (!response.body) throw new Error('Response body không khả dụng');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const normalized = buffer.replace(/}{/g, '}\n{');
+                const lines = normalized.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    try {
+                        const parsed = JSON.parse(line);
+                        if (parsed.data && parsed.data.keywordId) {
+                            setRankKeyData((prev) => prev.map((item) => (item.key_word_id === parsed.data.keywordId ? { ...item, serperRank: parsed.data.rank } : item)));
+                        }
+                    } catch (err) {
+                        console.error('Lỗi parse SSE JSON:', err);
+                    }
+                }
             }
+            if (buffer.trim()) {
+                try {
+                    const parsed = JSON.parse(buffer);
+                    if (parsed.data && parsed.data.keywordId) {
+                        setRankKeyData((prev) => prev.map((item) => (item.key_word_id === parsed.data.keywordId ? { ...item, serperRank: parsed.data.rank } : item)));
+                    }
+                } catch (err) {
+                    console.error('Lỗi parse SSE JSON cuối:', err);
+                }
+            }
+            MySwal.close();
+            ShowMessageSuccess({ content: 'Check Serper thành công' });
         } catch (error) {
             MySwal.close();
             ShowMessageError({ content: 'Lỗi khi gọi API Check Serper' });
         }
     };
-
     useEffect(() => {
         fetchRankKeyData();
     }, [domainId, startDate, endDate, page, limit, sortBy, sortOrder, search]);

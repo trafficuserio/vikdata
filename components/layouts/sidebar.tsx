@@ -16,6 +16,7 @@ import IconMenuDomain from '@/components/icon/menu/icon-menu-domain';
 import IconSearchGoogle from '@/components/icon/icon-search-google';
 import IconRecharge from '@/components/icon/icon-recharge';
 import IconMenuDocumentation from '@/components/icon/menu/icon-menu-documentation';
+import IconCheckIndex from '@/components/icon/icon-check-index';
 
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
@@ -109,6 +110,14 @@ const Sidebar = () => {
                                 </Link>
                             </li>
                             <li className="menu nav-item">
+                                <Link href="/check-index" className="nav-link group">
+                                    <div className="flex items-center">
+                                        <IconCheckIndex className="shrink-0 group-hover:!text-primary" />
+                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">Kiểm tra Index</span>
+                                    </div>
+                                </Link>
+                            </li>
+                            <li className="menu nav-item">
                                 <Link href="/google-search-api" className="nav-link group">
                                     <div className="flex items-center">
                                         <IconSearchGoogle className="shrink-0 group-hover:!text-primary" />
@@ -124,6 +133,7 @@ const Sidebar = () => {
                                     </div>
                                 </Link>
                             </li>
+
                             {role === 'admin' && (
                                 <>
                                     <li className="menu nav-item">
