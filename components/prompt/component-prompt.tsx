@@ -40,7 +40,7 @@ interface PromptContent {
     prompt_sapo: PromptFieldConfig;
     prompt_captions: PromptFieldConfig;
     prompt_conclude: PromptFieldConfig;
-    prompt_outline: PromptFieldConfig;
+    outline: PromptFieldConfig;
     trien_khai: PromptFieldConfig;
     internal: PromptFieldConfig;
 }
@@ -66,9 +66,9 @@ interface FlattenedPromptContent {
     prompt_conclude: string;
     prompt_conclude_type: string;
     prompt_conclude_model: string;
-    prompt_outline: string;
-    prompt_outline_type: string;
-    prompt_outline_model: string;
+    outline: string;
+    outline_type: string;
+    outline_model: string;
     trien_khai: string;
     trien_khai_type: string;
     trien_khai_model: string;
@@ -96,7 +96,7 @@ const initialPromptContent: PromptContent = {
     prompt_sapo: { content: '', type: null, model: null },
     prompt_captions: { content: '', type: null, model: null },
     prompt_conclude: { content: '', type: null, model: null },
-    prompt_outline: { content: '', type: null, model: null },
+    outline: { content: '', type: null, model: null },
     trien_khai: { content: '', type: null, model: null },
     internal: { content: '', type: null, model: null },
 };
@@ -137,7 +137,7 @@ export default function Prompt() {
         prompt_sapo: { type: null, model: null },
         prompt_captions: { type: null, model: null },
         prompt_conclude: { type: null, model: null },
-        prompt_outline: { type: null, model: null },
+        outline: { type: null, model: null },
         trien_khai: { type: null, model: null },
         internal: { type: null, model: null },
     });
@@ -189,14 +189,14 @@ export default function Prompt() {
                     modelOptions.find((opt: any) => opt.label === content.prompt_conclude_model) ||
                     (content.prompt_conclude_model ? { value: content.prompt_conclude_model, label: content.prompt_conclude_model } : null),
             },
-            prompt_outline: {
-                content: content.prompt_outline,
+            outline: {
+                content: content.outline,
                 type:
-                    typeOptions.find((opt: any) => opt.label === content.prompt_outline_type) ||
-                    (content.prompt_outline_type ? { value: content.prompt_outline_type, label: content.prompt_outline_type } : null),
+                    typeOptions.find((opt: any) => opt.label === content.outline_type) ||
+                    (content.outline_type ? { value: content.outline_type, label: content.outline_type } : null),
                 model:
-                    modelOptions.find((opt: any) => opt.label === content.prompt_outline_model) ||
-                    (content.prompt_outline_model ? { value: content.prompt_outline_model, label: content.prompt_outline_model } : null),
+                    modelOptions.find((opt: any) => opt.label === content.outline_model) ||
+                    (content.outline_model ? { value: content.outline_model, label: content.outline_model } : null),
             },
             trien_khai: {
                 content: content.trien_khai,
@@ -234,9 +234,9 @@ export default function Prompt() {
             prompt_conclude: content.prompt_conclude.content,
             prompt_conclude_type: content.prompt_conclude.type ? content.prompt_conclude.type.label : '',
             prompt_conclude_model: content.prompt_conclude.model ? content.prompt_conclude.model.label : '',
-            prompt_outline: content.prompt_outline.content,
-            prompt_outline_type: content.prompt_outline.type ? content.prompt_outline.type.label : '',
-            prompt_outline_model: content.prompt_outline.model ? content.prompt_outline.model.label : '',
+            outline: content.outline.content,
+            outline_type: content.outline.type ? content.outline.type.label : '',
+            outline_model: content.outline.model ? content.outline.model.label : '',
             trien_khai: content.trien_khai.content,
             trien_khai_type: content.trien_khai.type ? content.trien_khai.type.label : '',
             trien_khai_model: content.trien_khai.model ? content.trien_khai.model.label : '',
@@ -397,7 +397,7 @@ export default function Prompt() {
             prompt_sapo: { type: null, model: null },
             prompt_captions: { type: null, model: null },
             prompt_conclude: { type: null, model: null },
-            prompt_outline: { type: null, model: null },
+            outline: { type: null, model: null },
             trien_khai: { type: null, model: null },
             internal: { type: null, model: null },
         });
@@ -419,7 +419,7 @@ export default function Prompt() {
         });
         const newSelectStates = { ...selectStates };
         (
-            ['h1', 'title', 'meta', 'prompt_sapo', 'prompt_captions', 'prompt_conclude', 'prompt_outline', 'trien_khai', 'internal'] as (keyof Omit<
+            ['h1', 'title', 'meta', 'prompt_sapo', 'prompt_captions', 'prompt_conclude', 'outline', 'trien_khai', 'internal'] as (keyof Omit<
                 PromptContent,
                 'prompt_system' | 'prompt_keywords'
             >)[]
@@ -577,7 +577,7 @@ export default function Prompt() {
                                             </div>
                                         ))}
                                         {(
-                                            ['h1', 'title', 'meta', 'prompt_sapo', 'prompt_captions', 'prompt_conclude', 'prompt_outline', 'trien_khai', 'internal'] as (keyof Omit<
+                                            ['h1', 'title', 'meta', 'prompt_sapo', 'prompt_captions', 'prompt_conclude', 'outline', 'trien_khai', 'internal'] as (keyof Omit<
                                                 PromptContent,
                                                 'prompt_system' | 'prompt_keywords'
                                             >)[]
