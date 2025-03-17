@@ -109,7 +109,7 @@ const CheckUrlsComponent: React.FC = () => {
 
     return (
         <>
-            <div className="p-4 max-w-[400px] mx-auto panel border-[#e4e9f0] dark:border-[#1b2e4b] rounded-lg shadow-md">
+            <div className="p-4 mx-auto panel border-[#e4e9f0] dark:border-[#1b2e4b] rounded-lg shadow-md">
                 <h2 className="text-2xl font-semibold mb-4">Check Index</h2>
                 <textarea
                     className="w-full h-40 p-2 border border-gray-300 rounded-md mb-4 form-input"
