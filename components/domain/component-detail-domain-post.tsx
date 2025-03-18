@@ -152,6 +152,12 @@ const PostList: React.FC = () => {
             setPosts((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
         } catch (error) {
             console.error('Lỗi khi xóa bài viết:', error);
+            Swal.fire({
+                title: 'Lỗi',
+                text: 'Không thể xóa bài viết. Vui lòng thử lại sau.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+            });
         } finally {
             Swal.close();
         }
@@ -203,6 +209,12 @@ const PostList: React.FC = () => {
             setSelectedPosts([]);
         } catch (error) {
             console.error('Lỗi khi xóa nhiều bài viết:', error);
+            Swal.fire({
+                title: 'Lỗi',
+                text: 'Không thể xóa các bài viết đã chọn. Vui lòng thử lại sau.',
+                icon: 'error',
+                confirmButtonText: 'OK',
+            });
         } finally {
             Swal.close();
         }

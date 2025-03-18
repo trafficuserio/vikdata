@@ -7,9 +7,19 @@ import { useSelector } from 'react-redux';
 import { IRootState } from '@/store';
 import { DataTable, DataTableColumn } from 'mantine-datatable';
 import { useSearchParams } from 'next/navigation';
+import { Tab } from '@headlessui/react';
+import { Fragment } from 'react';
+import countries from 'i18n-iso-countries';
+// Import ngôn ngữ bạn muốn sử dụng
+import 'i18n-iso-countries/langs/vi.json';
+import 'i18n-iso-countries/langs/en.json';
 
 interface GSCData {
     query?: string;
+    page?: string;
+    country?: string;
+    device?: string;
+    search_appearance?: string;
     date?: string;
     clicks: number;
     impressions: number;
@@ -29,6 +39,10 @@ const friendlyNames: Record<string, string> = {
     position: 'Position',
     date: 'Date',
     query: 'Từ khóa',
+    page: 'Trang',
+    country: 'Quốc gia',
+    device: 'Thiết bị',
+    search_appearance: 'Hiển thị tìm kiếm',
 };
 
 const units: Record<string, string> = {
@@ -53,6 +67,37 @@ const metricDescriptions: Record<string, string> = {
     position: 'Vị trí trung bình',
 };
 
+// Define table dimensions
+type Dimension = 'query' | 'page' | 'country' | 'device' | 'search_appearance' | 'date';
+
+// Thêm mapping cho tên quốc gia
+const countryNames: Record<string, string> = {
+    'VN': 'Vietnam',
+    'US': 'United States',
+    'GB': 'United Kingdom',
+    'FR': 'France',
+    'DE': 'Germany',
+    'JP': 'Japan',
+    'KR': 'South Korea',
+    'CN': 'China',
+    'TW': 'Taiwan',
+    'HK': 'Hong Kong',
+    'SG': 'Singapore',
+    'MY': 'Malaysia',
+    'TH': 'Thailand',
+    'ID': 'Indonesia',
+    'AU': 'Australia',
+    'NZ': 'New Zealand',
+    'IN': 'India',
+    'BR': 'Brazil',
+    'CA': 'Canada',
+    // Thêm các quốc gia khác nếu cần
+};
+
+// Khởi tạo với ngôn ngữ
+countries.registerLocale(require('i18n-iso-countries/langs/vi.json'));
+countries.registerLocale(require('i18n-iso-countries/langs/en.json'));
+
 const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ startDate, endDate }) => {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
     const [errorGSC, setErrorGSC] = useState<string | null>(null);
@@ -65,6 +110,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
     const [sortBy, setSortBy] = useState<keyof GSCData>('query');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [search, setSearch] = useState<string>('');
+    const [currentDimension, setCurrentDimension] = useState<Dimension>('query');
 
     const [chartData, setChartData] = useState<{
         series: {
@@ -89,18 +135,20 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
             const start = dayjs(startDate).format('YYYY-MM-DD');
             const endFormatted = dayjs(endDate).format('YYYY-MM-DD');
             const response = await fetch(
-                `/api/gsc/queries?start=${start}&end=${endFormatted}&domainId=${domainId}&limit=${limit}&page=${page}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}&dimensions=query`,
+                `/api/gsc/queries?start=${start}&end=${endFormatted}&domainId=${domainId}&limit=${limit}&page=${page}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}&dimensions=${currentDimension}`,
             );
             if (!response.ok) {
-                throw new Error('Lỗi khi lấy dữ liệu GSC FETCH');
+                const errorText = await response.text();
+                throw new Error(`Error fetching table data: ${errorText}`);
             }
             const result = await response.json();
+            console.log('Table Data:', result);
             setGscData(result.data);
             setTotal(result.total);
             setErrorGSC(null);
         } catch (error: any) {
             console.error('Error fetching GSC data:', error);
-            setErrorGSC('Lỗi khi lấy dữ liệu GSC UI');
+            setErrorGSC(`Lỗi khi lấy dữ liệu GSC: ${error.message}`);
         }
     };
 
@@ -110,9 +158,11 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
             const endFormatted = dayjs(endDate).format('YYYY-MM-DD');
             const response = await fetch(`/api/gsc/queries?start=${start}&end=${endFormatted}&domainId=${domainId}&dimensions=date`);
             if (!response.ok) {
-                throw new Error('Lỗi khi lấy dữ liệu biểu đồ GSC');
+                const errorText = await response.text();
+                throw new Error(`Error fetching chart data: ${errorText}`);
             }
             const result = await response.json();
+            console.log('Chart Data:', result);
             const data: GSCData[] = result.data;
 
             const sortedData = data.sort((a, b) => dayjs(a.date!).diff(dayjs(b.date!)));
@@ -142,10 +192,12 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                     chart: {
                         id: 'gscChart',
                         height: 325,
-                        type: 'area',
+                        type: 'line',
                         fontFamily: 'Nunito, sans-serif',
                         zoom: { enabled: false },
-                        toolbar: { show: false },
+                        toolbar: {
+                            show: false
+                        },
                         events: {
                             mounted: function (chartContext: any, config: any) {},
                         },
@@ -153,23 +205,19 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                     dataLabels: { enabled: false },
                     stroke: {
                         show: true,
-                        curve: 'smooth',
+                        curve: 'straight', // Google Search Console uses straight lines
                         width: 2,
                         lineCap: 'square',
                     },
                     dropShadow: {
-                        enabled: true,
-                        opacity: 0.2,
-                        blur: 10,
-                        left: -7,
-                        top: 22,
+                        enabled: false, // GSC doesn't use drop shadows
                     },
-                    colors: ['#008FFB', '#00E396', '#FEB019', '#FF4560'],
+                    colors: ['#4285F4', '#34A853', '#FBBC05', '#EA4335'], // Google colors
                     labels: generatedDates,
                     xaxis: {
                         type: 'category',
-                        axisBorder: { show: false },
-                        axisTicks: { show: false },
+                        axisBorder: { show: true },
+                        axisTicks: { show: true },
                         crosshairs: { show: true },
                         labels: {
                             offsetX: 0,
@@ -206,13 +254,13 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                     legend: {
                         position: 'top',
                         horizontalAlign: 'right',
-                        fontSize: '16px',
-                        markers: { width: 10, height: 10, offsetX: -2 },
+                        fontSize: '14px',
+                        markers: { width: 8, height: 8, offsetX: -2 },
                         itemMargin: { horizontal: 10, vertical: 5 },
                     },
                     tooltip: {
                         marker: { show: true },
-                        x: { show: false },
+                        x: { show: true },
                         y: {
                             formatter: (val: number, opts: any) => {
                                 const seriesName = opts.w.globals.seriesNames[opts.seriesIndex];
@@ -221,21 +269,26 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                                 return formatNumber(val) + unit;
                             },
                         },
+                        theme: isDark ? 'dark' : 'light',
                     },
                     fill: {
-                        type: 'gradient',
-                        gradient: {
-                            shadeIntensity: 1,
-                            inverseColors: false,
-                            opacityFrom: isDark ? 0.19 : 0.28,
-                            opacityTo: 0.05,
-                            stops: isDark ? [100, 100] : [45, 100],
-                        },
+                        type: 'solid', // GSC uses solid lines, not gradients
+                        opacity: 1,
                     },
                     states: {
-                        inactive: {
-                            opacity: 0.3,
+                        hover: {
+                            filter: {
+                                type: 'lighten',
+                                value: 0.05,
+                            }
                         },
+                        active: {
+                            allowMultipleDataPointsSelection: false,
+                            filter: {
+                                type: 'darken',
+                                value: 0.35,
+                            }
+                        }
                     },
                 },
                 totals: totals,
@@ -244,7 +297,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
             setErrorGSC(null);
         } catch (error: any) {
             console.error('Error fetching GSC chart data:', error);
-            setErrorGSC('Lỗi khi lấy dữ liệu biểu đồ GSC');
+            setErrorGSC(`Lỗi khi lấy dữ liệu biểu đồ GSC: ${error.message}`);
         }
     };
 
@@ -255,17 +308,60 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
         Promise.all([fetchTableData(), fetchChartData()]).finally(() => {
             setIsLoadingGSC(false);
         });
-    }, [startDate, endDate, domainId, page, limit, sortBy, sortOrder, search]);
+    }, [startDate, endDate, domainId, page, limit, sortBy, sortOrder, search, currentDimension]);
+
+    const handleDimensionChange = (dimension: Dimension) => {
+        setCurrentDimension(dimension);
+        setPage(1);
+        
+        // Update sortBy based on the new dimension
+        if (dimension === 'date') {
+            setSortBy('date');
+        } else if (dimension === 'query') {
+            setSortBy('query');
+        } else if (dimension === 'page') {
+            setSortBy('page');
+        } else if (dimension === 'country') {
+            setSortBy('country');
+        } else if (dimension === 'device') {
+            setSortBy('device');
+        } else if (dimension === 'search_appearance') {
+            setSortBy('search_appearance');
+        }
+    };
 
     if (errorGSC) return <div className="text-red-500">{errorGSC}</div>;
 
-    const columns: DataTableColumn<GSCData>[] = [
-        { accessor: 'query', title: 'Từ khóa', sortable: true },
-        { accessor: 'clicks', title: 'Clicks', sortable: true, render: ({ clicks }) => formatNumber(clicks) },
-        { accessor: 'impressions', title: 'Impressions', sortable: true, render: ({ impressions }) => formatNumber(impressions) },
-        { accessor: 'ctr', title: 'CTR', sortable: true, render: ({ ctr }) => `${(ctr * 100).toFixed(2)}%` },
-        { accessor: 'position', title: 'Position', sortable: true, render: ({ position }) => position.toFixed(2) },
-    ];
+    // Dynamic columns based on current dimension
+    const getDynamicColumns = (): DataTableColumn<GSCData>[] => {
+        const dimensionColumn: DataTableColumn<GSCData> = {
+            accessor: currentDimension as string,
+            title: friendlyNames[currentDimension] || currentDimension,
+            sortable: true,
+            render: currentDimension === 'country' 
+                ? ({ country }) => {
+                    if (!country) return '';
+                    let countryName = countries.getName(country, 'vi', {select: 'official'});
+                    if (!countryName && country.length === 3) {
+                        const alpha2 = countries.alpha3ToAlpha2(country.toUpperCase());
+                        if (alpha2) {
+                            countryName = countries.getName(alpha2, 'vi', {select: 'official'});
+                        }
+                    }
+                    return countryName || (country === 'zzz' ? 'Vùng không xác định' : country);
+                }
+                : undefined
+        };
+
+        const commonColumns: DataTableColumn<GSCData>[] = [
+            { accessor: 'clicks', title: 'Clicks', sortable: true, render: ({ clicks }) => formatNumber(clicks) },
+            { accessor: 'impressions', title: 'Impressions', sortable: true, render: ({ impressions }) => formatNumber(impressions) },
+            { accessor: 'ctr', title: 'CTR', sortable: true, render: ({ ctr }) => `${(ctr * 100).toFixed(2)}%` },
+            { accessor: 'position', title: 'Position', sortable: true, render: ({ position }) => position.toFixed(2) },
+        ];
+
+        return [dimensionColumn, ...commonColumns];
+    };
 
     return (
         <div>
@@ -277,38 +373,143 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
 
             {!isLoadingGSC && chartData && (
                 <>
-                    {/* Totals Cards */}
-                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                        {['clicks', 'impressions', 'ctr', 'position'].map((metric, index) => (
-                            <div key={metric} className="relative flex-grow overflow-hidden rounded-lg bg-white px-6 py-4 dark:bg-black">
-                                <div className="absolute -left-1 top-1/2 h-14 w-2 -translate-y-1/2 rounded-lg" style={{ backgroundColor: chartData.options.colors[index] || '#008FFB' }}></div>
-                                <h3 className="text-lg font-semibold dark:text-white">{friendlyNames[metric] || metric}</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{metricDescriptions[metric]}</p>
-                                <p>{['ctr', 'position'].includes(metric) ? `${chartData.totals[metric].toFixed(2)}${units[metric]}` : formatNumber(chartData.totals[metric])}</p>
+                    {/* Chart Header with Metrics Selection - Google GSC Style */}
+                    <div className="mt-4 panel p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+                            <h5 className="text-lg font-semibold dark:text-white mb-2 md:mb-0">Google Search Console Performance</h5>
+                            <div className="flex space-x-2">
+                                {['clicks', 'impressions', 'ctr', 'position'].map((metric, index) => (
+                                    <div 
+                                        key={metric} 
+                                        className="px-3 py-1 rounded-full cursor-pointer flex items-center text-sm"
+                                        style={{ 
+                                            backgroundColor: `${chartData.options.colors[index]}22`, 
+                                            color: chartData.options.colors[index],
+                                            border: `1px solid ${chartData.options.colors[index]}`
+                                        }}
+                                    >
+                                        <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: chartData.options.colors[index] }}></span>
+                                        {friendlyNames[metric] || metric}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-
-                    {/* Chart */}
-                    <div className="panel mt-4 h-full xl:col-span-2">
-                        <div className="flex flex-col justify-between dark:text-white-light md:flex-row">
-                            <h5 className="text-lg font-semibold">Biểu đồ Google Search Console</h5>
                         </div>
+
+                        {/* Totals Cards - Google GSC Style */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            {['clicks', 'impressions', 'ctr', 'position'].map((metric, index) => (
+                                <div key={metric} className="bg-white dark:bg-black p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-800">
+                                    <div className="flex items-start">
+                                        <div className="w-3 h-3 mt-1 rounded-full mr-2" style={{ backgroundColor: chartData.options.colors[index] }}></div>
+                                        <div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">{friendlyNames[metric] || metric}</p>
+                                            <h3 className="text-xl font-semibold mt-1">
+                                                {['ctr'].includes(metric) 
+                                                    ? `${(chartData.totals[metric] * 100).toFixed(2)}${units[metric]}` 
+                                                    : metric === 'position' 
+                                                        ? chartData.totals[metric].toFixed(2)
+                                                        : formatNumber(chartData.totals[metric])}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Chart - Google GSC Style */}
                         <div className="relative">
                             <div className="rounded-lg bg-white dark:bg-black">
-                                <ReactApexChart options={chartData.options} series={chartData.series} type="area" height={325} />
+                                <ReactApexChart options={chartData.options} series={chartData.series} type="line" height={325} />
                             </div>
                         </div>
                     </div>
                 </>
             )}
 
-            {/* Data Table */}
+            {/* Data Table with Tabs - Google GSC Style */}
             {!isLoadingGSC && (
                 <div className="panel mt-4 border-white-light px-0 dark:border-[#1b2e4b]">
-                    <div className="mb-4 flex-col md:flex-row items-center justify-between gap-4 flex px-4">
-                        <h5 className="text-lg font-semibold mb-2 dark:text-white">Google Search Console - Chi tiết từ khóa</h5>
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                        <h5 className="text-lg font-semibold dark:text-white">Search results</h5>
+                    </div>
+                    
+                    {/* GSC Dimension Tabs */}
+                    <Tab.Group selectedIndex={['query', 'page', 'country', 'device', 'search_appearance', 'date'].indexOf(currentDimension)} onChange={(index) => {
+                        const dimensions: Dimension[] = ['query', 'page', 'country', 'device', 'search_appearance', 'date'];
+                        handleDimensionChange(dimensions[index]);
+                    }}>
+                        <Tab.List className="flex p-1 space-x-1 border-b border-gray-200 dark:border-gray-700 px-4">
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        className={`${
+                                            selected ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                        } px-4 py-2 text-sm font-medium focus:outline-none`}
+                                    >
+                                        Queries
+                                    </button>
+                                )}
+                            </Tab>
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        className={`${
+                                            selected ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                        } px-4 py-2 text-sm font-medium focus:outline-none`}
+                                    >
+                                        Pages
+                                    </button>
+                                )}
+                            </Tab>
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        className={`${
+                                            selected ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                        } px-4 py-2 text-sm font-medium focus:outline-none`}
+                                    >
+                                        Countries
+                                    </button>
+                                )}
+                            </Tab>
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        className={`${
+                                            selected ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                        } px-4 py-2 text-sm font-medium focus:outline-none`}
+                                    >
+                                        Devices
+                                    </button>
+                                )}
+                            </Tab>
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        className={`${
+                                            selected ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                        } px-4 py-2 text-sm font-medium focus:outline-none`}
+                                    >
+                                        Search appearance
+                                    </button>
+                                )}
+                            </Tab>
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        className={`${
+                                            selected ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                                        } px-4 py-2 text-sm font-medium focus:outline-none`}
+                                    >
+                                        Dates
+                                    </button>
+                                )}
+                            </Tab>
+                        </Tab.List>
+                    </Tab.Group>
 
+                    <div className="px-4 py-2 flex justify-between items-center">
+                        <div></div>
                         <input
                             type="text"
                             value={search}
@@ -316,15 +517,16 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                                 setSearch(e.target.value);
                                 setPage(1);
                             }}
-                            placeholder="Tìm kiếm..."
-                            className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white"
+                            placeholder="Filter items..."
+                            className="px-4 py-2 border rounded-md dark:bg-black dark:border-gray-700 dark:text-white w-full max-w-xs"
                         />
                     </div>
+                    
                     <div className="datatables pagination-padding overflow-auto max-h-[70dvh]">
                         <DataTable
                             className="table-hover whitespace-nowrap"
                             records={gscData}
-                            columns={columns}
+                            columns={getDynamicColumns()}
                             totalRecords={total}
                             recordsPerPage={limit}
                             page={page}
@@ -340,7 +542,7 @@ const ComponentReadDomainGoogleSearchConsole: React.FC<ComponentProps> = ({ star
                                 setSortOrder(direction as 'asc' | 'desc');
                                 setPage(1);
                             }}
-                            paginationText={({ from, to, totalRecords }) => `Hiển thị từ ${from} đến ${to} trong tổng số ${totalRecords} mục`}
+                            paginationText={({ from, to, totalRecords }) => `Showing ${from} to ${to} of ${totalRecords} entries`}
                             highlightOnHover
                         />
                     </div>

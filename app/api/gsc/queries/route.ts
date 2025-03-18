@@ -41,12 +41,16 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get('limit') || '10', 10);
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const sortByParam = url.searchParams.get('sortBy') || 'query';
-    const sortOrder = url.searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc';
+    const sortOrder = url.searchParams.get('sortOrder') || 'asc';
     const search = url.searchParams.get('search') || '';
     const dimensionsParam = url.searchParams.get('dimensions') || 'query';
 
     type GSCDataKey = keyof {
         query: string;
+        page: string;
+        country: string;
+        device: string;
+        searchAppearance: string;
         date: string;
         clicks: number;
         impressions: number;
@@ -54,12 +58,14 @@ export async function GET(req: NextRequest) {
         position: number;
     };
 
-    const validDimensions: GSCDataKey[] = ['query', 'date'];
+    const validDimensions: GSCDataKey[] = ['query', 'page', 'country', 'device', 'searchAppearance', 'date'];
     const dimensions: string[] = validDimensions.includes(dimensionsParam as GSCDataKey) ? [dimensionsParam] : ['query'];
 
-    const validSortBy: GSCDataKey[] = dimensions.includes('date') ? ['date', 'clicks', 'impressions', 'ctr', 'position'] : ['query', 'clicks', 'impressions', 'ctr', 'position'];
+    const validSortBy: GSCDataKey[] = dimensions.includes('date') 
+        ? ['date', 'clicks', 'impressions', 'ctr', 'position'] 
+        : [dimensions[0] as GSCDataKey, 'clicks', 'impressions', 'ctr', 'position'];
 
-    const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : dimensions.includes('date') ? 'date' : 'query';
+    const sortBy: GSCDataKey = validSortBy.includes(sortByParam as GSCDataKey) ? (sortByParam as GSCDataKey) : dimensions[0] as GSCDataKey;
 
     if (!domainId) {
         return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 });
@@ -74,17 +80,26 @@ export async function GET(req: NextRequest) {
     try {
         const domainInfo = await getDomainInfoById(domainId, token);
         const keySearchConsole = domainInfo.key_search_console;
-        // const domain = domainInfo.domain.startsWith('https://') ? domainInfo.domain : `https://${domainInfo.domain}`;
         const domain = domainInfo.domain;
 
         const searchConsoleClient = createSearchConsoleClient(keySearchConsole);
+
+        // Map dimension to Google Search Console API dimension
+        const dimensionMap: { [key: string]: string } = {
+            query: 'query',
+            page: 'page',
+            country: 'country',
+            device: 'device',
+            searchAppearance: 'searchAppearance',
+            date: 'date'
+        };
 
         const response = await searchConsoleClient.searchanalytics.query({
             siteUrl: domain,
             requestBody: {
                 startDate: start,
                 endDate: end,
-                dimensions: dimensions,
+                dimensions: [dimensionMap[dimensions[0]] || 'query'],
                 rowLimit: 5000,
             },
         });
@@ -92,36 +107,23 @@ export async function GET(req: NextRequest) {
         let rows = response.data.rows || [];
         let data: any[] = [];
 
-        if (dimensions.includes('date')) {
-            data = rows.map((row) => ({
-                date: row.keys?.[0] || '',
-                clicks: row.clicks || 0,
-                impressions: row.impressions || 0,
-                ctr: row.ctr || 0,
-                position: row.position || 0,
-            }));
-        } else {
-            data = rows.map((row) => ({
-                query: row.keys?.[0] || '',
-                clicks: row.clicks || 0,
-                impressions: row.impressions || 0,
-                ctr: row.ctr || 0,
-                position: row.position || 0,
-            }));
-        }
+        data = rows.map((row) => ({
+            [dimensions[0]]: row.keys?.[0] || '',
+            clicks: row.clicks || 0,
+            impressions: row.impressions || 0,
+            ctr: row.ctr || 0,
+            position: row.position || 0,
+        }));
 
         // Apply search filter if necessary
         if (search) {
             const searchLower = search.toLowerCase();
-            if (dimensions.includes('date')) {
-                data = data.filter((item) => item.date.toLowerCase().includes(searchLower));
-            } else {
-                data = data.filter((item) => item.query.toLowerCase().includes(searchLower));
-            }
+            data = data.filter((item) => 
+                String(item[dimensions[0]]).toLowerCase().includes(searchLower)
+            );
         }
 
-        // Sorting
-        data = data.sort((a, b) => {
+        data.sort((a, b) => {
             if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
             if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
             return 0;

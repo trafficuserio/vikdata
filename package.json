@@ -26,6 +26,7 @@
         "google-auth-library": "^9.15.0",
         "googleapis": "^144.0.0",
         "he": "^1.2.0",
+        "i18n-iso-countries": "^7.14.0",
         "i18next": "^23.13.0",
         "joi": "^17.13.3",
         "js-cookie": "^3.0.5",
