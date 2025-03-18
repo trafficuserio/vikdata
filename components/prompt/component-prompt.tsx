@@ -144,6 +144,10 @@ export default function Prompt() {
     const [typeOptions, setTypeOptions] = useState<any[]>([]);
     const [modelOptions, setModelOptions] = useState<any[]>([]);
 
+    const formatNumber = (value: number) => {
+        return new Intl.NumberFormat('vi-VN').format(value);
+    };
+
     const unflattenContent = (content: any): PromptContent => {
         return {
             prompt_system: content.prompt_system,
@@ -191,12 +195,8 @@ export default function Prompt() {
             },
             outline: {
                 content: content.outline,
-                type:
-                    typeOptions.find((opt: any) => opt.label === content.outline_type) ||
-                    (content.outline_type ? { value: content.outline_type, label: content.outline_type } : null),
-                model:
-                    modelOptions.find((opt: any) => opt.label === content.outline_model) ||
-                    (content.outline_model ? { value: content.outline_model, label: content.outline_model } : null),
+                type: typeOptions.find((opt: any) => opt.label === content.outline_type) || (content.outline_type ? { value: content.outline_type, label: content.outline_type } : null),
+                model: modelOptions.find((opt: any) => opt.label === content.outline_model) || (content.outline_model ? { value: content.outline_model, label: content.outline_model } : null),
             },
             trien_khai: {
                 content: content.trien_khai,
@@ -419,10 +419,7 @@ export default function Prompt() {
         });
         const newSelectStates = { ...selectStates };
         (
-            ['h1', 'title', 'meta', 'prompt_sapo', 'prompt_captions', 'prompt_conclude', 'outline', 'trien_khai', 'internal'] as (keyof Omit<
-                PromptContent,
-                'prompt_system' | 'prompt_keywords'
-            >)[]
+            ['h1', 'title', 'meta', 'prompt_sapo', 'prompt_captions', 'prompt_conclude', 'outline', 'trien_khai', 'internal'] as (keyof Omit<PromptContent, 'prompt_system' | 'prompt_keywords'>)[]
         ).forEach((field) => {
             newSelectStates[field] = { type: contentObj[field]?.type || null, model: contentObj[field]?.model || null };
         });
@@ -440,16 +437,17 @@ export default function Prompt() {
             render: (p: any) => <span className="text-sm badge badge-outline-primary">Cấp {p.level}</span>,
         },
         { accessor: 'name', title: 'Tên', sortable: true },
-        { accessor: 'money', title: 'Giá', sortable: true, render: (p: any) => <span className="text-sm badge badge-outline-primary">{p.money} VNĐ</span> },
+        { accessor: 'money', title: 'Giá', sortable: true, render: (p: any) => <span className="text-sm badge badge-outline-primary">{formatNumber(p.money)} VNĐ</span> },
         {
             accessor: 'action',
             title: 'Hành động',
+            textAlignment: 'center',
             render: (p: any) => (
-                <div className="flex space-x-2">
-                    <button onClick={() => handleEditPrompt(p)} className="btn btn-primary">
+                <div className="flex flex-col gap-2">
+                    <button onClick={() => handleEditPrompt(p)} className="hover:underline">
                         Cập nhật
                     </button>
-                    <button onClick={() => deletePrompt(p.id)} className="btn btn-danger">
+                    <button onClick={() => deletePrompt(p.id)} className="hover:underline">
                         Xóa
                     </button>
                 </div>
